@@ -8,7 +8,7 @@ Agree on the representation of the common multidimensional quantities.
 
 # Motivation
 
-In different messages common multidimensional quantities are defined in different ways: sometimes using an array and sometimes using separate fields for every dimension (for example, `x`, `y`, `z` for positions or `w`, `x`, `y`, `z` for quaternions).
+In different messages common multidimensional quantities are defined in different ways: sometimes using an array and sometimes using separate fields for every dimension (for example, `x`, `y`, `z` for positions or `q1`, `q2`, `q3`, `q4` for quaternions).
 
 # Detailed Design
 
