@@ -1,6 +1,6 @@
   * Start date: 2018-03-26
   * Contributors: Dennis Mannhart <dennis@px4.io>, Martina Rivizzigno <martina@px4.io>, Christoph Tobler <christoph@px.4io>
-  * Related PR: [avoidance-msg](https://github.com/mavlink/mavlink/pull/856)
+  * Related PR: [trajectory-msg](https://github.com/mavlink/mavlink/pull/856)
   * Related document: [avoidance-proposal](https://docs.google.com/document/d/1BQp1a6yszl9f6LDrxrkKUDDGyXxBs5C86BzvJwVbRrU/edit#heading=h.huol20joi641)
   
 # Summary
