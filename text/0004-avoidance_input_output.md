@@ -1,5 +1,5 @@
   * Start date: 2018-03-26
-  * Contributors: Dennis Mannhart <dennis@px4.io>, Martina Rivizzigno <martina@px4.io>, Christoph Tobler <christoph@px.4io>
+  * Contributors: Dennis Mannhart <dennis@px4.io>, Martina Rivizzigno <martina@px4.io>, Christoph Tobler <christoph@px4.io>
   * Related PR: [trajectory-msg](https://github.com/mavlink/mavlink/pull/856)
  
 # Summary
