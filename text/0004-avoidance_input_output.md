@@ -4,7 +4,7 @@
  
 # Summary
 
-A general message that provides information about the desired kinematics over some time horizon. Any avoidance- or trajectory-module can exploit this message to pass kinematic related trajectory
+A general message that provides information about the desired kinematics over some time horizon. Independent of the type of vehicle, any avoidance- or trajectory-module can exploit this message to pass kinematic related trajectory
 information to the onboard autopilot. 
 
   
@@ -31,8 +31,9 @@ The first two suggested types are:
   * `[9]`  : yaw
   * `[10]` : yaw-speed
 * BEZIER: `Anchor-Points` serve as spline parameters.
-  * `[0-2]`:  Bezier point
-  * `[3]`: Time horizon 
+  * `[0-2]`:  bezier point
+  * `[3]`: time horizon 
+  * `[4]`: yaw
   
 The interface does not require to have all 5 `Anchor-Points` active. For instance, a quadratic bezier only requires three `Anchor-Points`, a cubic bezier 4 `Anchor-Points` and a simple velocity setpoint
 just the velocity part of the first `Anchor-Point`. The number of active `Anchor-Points` is defined by the field `point_valid`, which is an array of 5 elements. Each index corresponds to one `Anchor-Point` (order is preserved), where
@@ -47,18 +48,37 @@ The number of `Anchor-Points` define the reachesness of the trajectory informati
 
 Most today's onboard autopilots contain a position and velocity controller and therefore 2- and 3 point-spline parametrization contains all the information needed.
 
+
+## Yaw / yaw-speed 
+
+For some of the vehicles the heading is already predefined (ground vehicle, fixed-wing etc.). In contrast, for multi-rotors the heading can be varied while the kinematic constraints are still satisfied. For these vehicles, the
+yaw- and yaw-speed field can be used to specify the heading at a particular location.
+
+### Waypoints
+
+Each waypoint (=`Anchor-Point`) contains a yaw- and yaw-speed field. A fintie yaw-value corresponds to the desired heading at a particular waypoint. A non-finite yaw value means that the heading should be kept. 
+If the yaw field is valid, then the yaw-speed field serves as feed-forward term at a particular waypoint. Otherwise it serves as a general yaw-speed demeand. It is to note that the yaw-speed field makes in particular
+sense when there is only one `Anchor-Point` valid where the yaw-speed setpoint corresponds to current desired vehcile yaw-speed. This is useful for avoidance systems which provide a new position/velocity and yaw/yaw-speed 
+setpoint at each time stamp. 
+
+### Bezier-splines
+
+One kinematic spline provides continuous kinematic state information along some trajectory, which is defined by the bezier points. However, it does not contain any heading information. To overcome this drawback, each bezier point contains
+a yaw-field. For the first and last bezier point, the yaw-field is handled the same as for the waypoints. For the other bezier points, the yaw field corresponds to the pose on the trajectory closest to that particular bezier point. The heading in between the
+bezier points is not defined by the message and has to be defined by the auto-pilot. It can be anything from simple interpolation to step inputs directly. If the yaw-field is set to NAN, then the demanded heading will be set along the direction of motion. 
+
 # Alternatives
 
-The current trajectory proposal does not deal with orientation. In order to optimize for orientation as well, an alternative is to do the entire trajectory computation offboard and just send 
-thrust and angular velocity commands to the onboard controller. The advantage of such a control scheme with a fast inner control loop is that the offboard controller can assume angular
+The current trajectory proposal does not deal with orientation. In order to optimize for orientation as well, an alternative is to do the entire trajectory computation on a companion computer and just send 
+thrust and angular velocity commands to the autopilot. The advantage of such a control scheme with a fast inner control loop is that the dynamics of the vehicle can be simplifed with angular
 velocity and thrust scalar as output. The benefits of such a system are the following:
-* more sophisticated trajectory algorithms can be run offboard (for instance MPC)
-* in addition to kinematic states the offboard controller can also optimize for angular velocity and thrust commands 
-* the offboard MCU can run at low frequency 
-* the onboard controller is very simple with just a rate controller and a mixer
+* more sophisticated trajectory algorithms can be run on companion computer (for instance MPC)
+* more optimization toolboxes available on well supported OS's
+* the companion MCU can run at low frequency 
+* the autopilot controller is very simple with just a rate controller and a mixer
 
-The disadvantage is that the autopilot relies heavily on the offboard MCU with almost all flight related responsibilities being moved to the offboard controller and therefore might disagree
-with the autopilot's safety requirements. 
+The disadvantage is that the autopilot relies heavily on the companion MCU with almost all flight related responsibilities being moved to the companion controller. This drawback, however, can be overcome by keeping a simple
+position/velocity-controller present in the autopilot that will take over once a failure of the companion computer is detected. 
 
 # Unresolved Questions
 
