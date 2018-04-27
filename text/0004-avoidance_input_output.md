@@ -1,5 +1,5 @@
   * Start date: 2018-03-26
-  * Contributors: Dennis Mannhart <dennis@px4.io>, Martina Rivizzigno <martina@px4.io>, Christoph Tobler <christoph@px4.io>
+  * Contributors: Dennis Mannhart <dennis@px4.io>, Martina Rivizzigno <martina@px4.io>, Christoph Tobler <christoph@px4.io>, Lorenz Meier <lorenz@px4.io>
   * Related PR: [trajectory-msg](https://github.com/mavlink/mavlink/pull/856)
  
 # Summary
@@ -21,9 +21,14 @@ The trajectory message should comply with following requirements:
 * a well-defined base message that can be extended
 * serves as input to and output from any offboard module
 
+```
+WORK IN PROGRESS: The definition below will be revisited before this RFC is final
+```
+
 The core of the message are five kinematic points in space, which we call `Anchor-Points`. Each `Anchor-Point` consists of an array of 11 elements. The `type`-field defines the interpretation of the 11 indices that 
 applies to all 5 `Anchor-Points`. 
-The first two suggested types are:
+The first two suggested types are (to be revised after initial prototyping):
+
 * WAYPOINTS: Each `Anchor-Point` corresponds to a waypoint.
   *	`[0-2]`: position
   * `[3-5]`: velocity
@@ -83,7 +88,7 @@ position/velocity-controller present in the autopilot that will take over once a
 # Unresolved Questions
 
 The number of 5 `Anchor-Points` is a suggestion. The main reason for choosing 5 is because from a computational feasibility point of view, spline parametrization with more than 4 parameters is not very common for the simple reason that it is hard to solve. 
-5 `Anchor-Points` provide information up to snap which already exceeds the capacity of most onboard controller.
+5 `Anchor-Points` provide information up to snap which already exceeds the capacity of most onboard controllers.
 
 # References 
  * [avoidance-proposal](https://docs.google.com/document/d/1BQp1a6yszl9f6LDrxrkKUDDGyXxBs5C86BzvJwVbRrU/edit#heading=h.huol20joi641)
