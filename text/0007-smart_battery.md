@@ -17,9 +17,16 @@ A companion computer in retail/commercial drones based on PX4 can act on this in
 
 Add new fields for smart battery information under <extensions/> in the BATTERY_STATUS message.
 
+I propose adding these fields:
+
+<field type="uint16_t" name="serial_number">Battery serial number, 0: battery does not have a serial number</field>
+<field type="uint16_t" name="capacity" units="mAh">Actual capacity of the battery measured by the fuel gauge, 0: battery does not report actual capacity</field>
+<field type="uint16_t" name="cycle_count">Number of charge-discharge cycles reported by the fuel gauge, UINT16_MAX: battery does not report cycle count</field>
+<field type="uint16_t" name="average_time_remaining" units="s">Predicted remaining battery capacity based on the average rate of discharge in seconds, 0: battery does not report predicted remaining capacity</field>
+
 # Alternatives
 
-Create a new BATTERY_EXTENDED message to handle the new feilds instead of under <extensions/> in the BATTERY_STATUS message.
+Create a new BATTERY_EXTENDED message to handle the new fields instead of under <extensions/> in the BATTERY_STATUS message.
 
 # Unresolved Questions
 
