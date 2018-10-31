@@ -1,5 +1,6 @@
   * Start date: 2018-10-31
   * Contributors: Tanja Baumann <tanja@auterion.com>
+  * Related PR: [companion_status #1014](https://github.com/mavlink/mavlink/pull/1014)
  
 # Summary
 
@@ -22,7 +23,7 @@ The message contains fields for the following data:
 ## Proposed Enums
 
     <enum name="COMPANION_STATE">
-      <description>Status signal of the obstacle avoidance algorithm</description>
+      <description> Status of a companion process</description>
       <entry value="0" name="COMPANION_STATE_HEALTHY"/>
       <entry value="1" name="COMPANION_STATE_TIMEOUT"/>
       <entry value="2" name="COMPANION_STATE_ABORT"/>
@@ -30,7 +31,7 @@ The message contains fields for the following data:
       <entry value="4" name="COMPANION_STATE_COMPONENT_FAIL"/>
    </enum>
    <enum name="COMPANION_TYPE">
-      <description>Status signal of the obstacle avoidance algorithm</description>
+      <description> Type of a companion process</description>
       <entry value="0" name="COMPANION_TYPE_GENERIC"/>
       <entry value="1" name="COMPANION_TYPE_AVOIDANCE"/>
       <entry value="2" name="COMPANION_TYPE_VIO"/>
