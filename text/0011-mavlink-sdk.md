@@ -1,9 +1,9 @@
   * Start date: 2019-05-10
-  * Contributors: Beat Kueng <beat-kueng@gmx.net>, Lorenz Meier <lorenz@px4.io>, Julian Oes <julian@oes.ch>, Jonas Vautherin <jonas.vautherin@gmail.com>
+  * Contributors: Beat Kueng <beat-kueng@gmx.net>, Lorenz Meier <lorenz@px4.io>, Julian Oes <julian@oes.ch>, Tom Pittenger, Ramón Hernán Roche Quintana <mrpollo@gmail.com>, Jonas Vautherin <jonas.vautherin@gmail.com>, Stone White <bys_1123@163.com>, Hamish Willee <hamishwillee@gmail.com>
 
 # Summary
 
-The proposition here is to rename the "DronecodeSDK" to "MAVLink SDK" and move it into the MAVLink organization.
+The proposition here is to rename the "DronecodeSDK" to "MAVSDK" and move it into the MAVLink organization.
 
 # Motivation
 
@@ -17,19 +17,19 @@ However, the "Dronecode" branding of it has been seen to create confusion that t
 
 The proposition goes as follows:
 
-  * The "DronecodeSDK" gets renamed to "MAVLink SDK"
+  * The "DronecodeSDK" gets renamed to "MAVSDK"
   * All the subprojects of the SDK (API definition, C++ mavlink implementation, gRPC server, language bindings) move to the MAVLink organization
-  * The SDK commits to staying open to different MAVLink-based platforms, by:
-    * Staying generic to "MAVLink common" (while allowing plugins for specific features)
-    * Maintaining tests making sure that changes don't break the supported platforms
-    * Maintaining a CI infrastructure running those tests
+  * The SDK is committed to staying open to different MAVLink-based platforms, by:
+    * Staying generic to "MAVLink common" (while allowing plugins for specific features/dialects).
+    * Maintaining tests making sure that changes don't break the supported platforms.
+    * Maintaining a CI infrastructure running those tests.
+  * Contributions to the SDK should come with adequate automated testing to the same quality level as standard plugins.
+  * Contributions do not necessarily need to support all flight stacks to be merged, as long as they do not break existing test suites.
+  * The contributor must commit to maintain the code. If not maintained, the code might be removed.
+  * The people with maintenance rights is the superset of the current MAVLink and SDK teams.
 
 # Relation to other MAVLink implementations
 
 The SDK architecture makes it theoretically compatible with different implementations, as long as the API is maintained. This means that even though the SDK comes with a C++ mavlink implementation, one could possibly integrate e.g. rust-mavlink or, say, a pure python implementation.
 
-# Unresolved Questions
-
-  * Naming of the different subprojects: how should e.g. DronecodeSDK-Swift be named? MAVLinkSDK-Swift? MAVLink-API-Swift?
-  * Namespace/prefix in the implementation: "mvl::"? "mvlsdk::"?
-  * SDK logo: should it be the MAVLink logo, or should it be a new logo specific to the "MAVLink SDK" project?
+MAVSDK is _an_ official SDK, in that it is supported and maintained within the MAVLink organization but without the implication that it is the only or necessarily best stack for every flight stack.
