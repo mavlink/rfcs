@@ -26,7 +26,6 @@ The proposition goes as follows:
   * Contributions to the SDK should come with adequate automated testing to the same quality level as standard plugins.
   * Contributions do not necessarily need to support all flight stacks to be merged, as long as they do not break existing test suites.
   * The contributor must commit to maintain the code. If not maintained, the code might be removed.
-  * The people with maintenance rights is the superset of the current MAVLink and SDK teams.
 
 # Relation to other MAVLink implementations
 
