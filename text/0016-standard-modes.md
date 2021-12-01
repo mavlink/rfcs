@@ -207,6 +207,24 @@ This could also be done by defining suitably generic commands: e.g. [MAV_CMD_NAV
 Modes have the slight benefit that the commands already have definitions which may not be suitably generic.
 Further commands do not have to match a specific mode in all cases: using modes means that the behaviour will have an expected display in the UI.
 
+
+## Only expose standard modes
+
+`AVAILABLE_MODES` (as designed) is emitted for all modes.
+
+This is useful as it allows a UI where the GCS can display all the standard modes if it wants, or all the standard modes and separately all the custom modes (albeit these could not be translated etc).
+
+However this may be unnecessarily complicated. If we agree that we only need to list the supported modes then we could simplify work for the GCS by providing all the supported modes in a single message. Something like:
+
+```xml
+    <message id="435" name="AVAILABLE_MODES">
+      <description>Get the list of all available standard modes.
+        The message can be requested using MAV_CMD_REQUEST_MESSAGE.
+      </description>
+      <field type="char[250]" name="modes">List of enum values for all standard modes, comma separated, without null termination character.</field>
+    </message>
+```
+
 ## Only expose custom modes
 
 Just implementing `AVAILABLE_MODES` would allow an anonymous flight stack to be used by a ground station in a limited way.
@@ -216,6 +234,8 @@ However there would be no reliable common understanding of what each of the mode
 
 
 # Unresolved Questions
+
+- Do we need support for getting available custom modes? If we only need standard modes then we could have a much simpler `AVAILABLE_MODES` and much easier interaction for GCS.
 
 - Can we we provide more information about the current mode. E.g. in return mode, the user doesn't care about the behaviour, but a GCS might better configure itself if it knows that rally points are being used, or a mission landing.
 - What modes make sense for other components? Camera etc.
