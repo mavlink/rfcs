@@ -8,7 +8,7 @@
 
 This RFC proposes a microservice that will allow a GCS (or MAVLink SDK) to use a safely use a "standard" set of flight modes without any prior knowledge of a flight stack.
 
-The proposal defines a small (initial) set of standard autopilot modes, along with mechanism to query available modes, set the standard mode, and publish the current standard mode (if a standard mode is active).
+The proposal defines a small (initial) set of standard autopilot modes, along with mechanism to query available modes, set the standard mode, and determine the current standard mode (if a standard mode is active).
 This is sufficient to determine what modes are supported, command a flight stack into a standard mode, and have it behave in a predictable way.
 
 The mechanism also enables, but does not define, standard modes for other non-autopilot components like cameras, gimbals, etc.
@@ -35,27 +35,29 @@ MAVLink currently standardizes *very high level* _base modes_ (defined in [MAV_M
 
 More specific flight behaviour/modes are defined in _custom modes_, which are specific to each flight stack.
 Mechanisms are provided to set the base and custom modes ([MAV_CMD_DO_SET_MODE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE)).
-The `HEARTBEAT` contains the current/active `base_mode` and `custom_mode`. 
+The `HEARTBEAT` contains the current/active `base_mode` and `custom_mode`.
 There are no mechanisms query the available custom modes.
 
-Most autopilots implement a set of custom flight modes that have very similar behaviour, including: takeoff, land, safety return/RTL, position mode, altitude mode, mission mode, hold mode.
+Most autopilots implement a set of custom flight modes that have very similar behaviour or intent, for example: position-hold mode, altitude-hold mode, mission mode, safety return/RTL.
+
 However because these are all identified by different custom mode identifiers on different flight stacks, there is no way to be sure what these "mean" without pre-existing knowledge.
 
 
 # Detailed Design
 
 The design proposes a small set of modes that are (broadly speaking) commonly implemented across flight stacks, along with mechanisms to:
-- set the standard mode
-- get the current standard mode, if active.
 - determine what modes are available
+- set the standard mode
+- infer the current standard mode, if active.
+
 
 ## Standard modes
 
 Standard modes are those that are implemented in a similar way by most flight stacks, and which a GCS can present as more or less the same thing for any flight stack.
 
-The precise mechanics and behaviour do not have to be identical, but the broad intent has to be similar.
-For example, most flight stacks have the concept of a safety return mode, which flies the vehicle back to a safe place.
-While the destination, path, and whether the vehicle lands may differ for a particular flight stack or based on settings, the concept is similar, and would not be unexpected by a user.
+The precise mechanics and behaviour do not have to be identical, but the broad intent has to be similar, and any differing behaviour across flight statcks should not be unexpected by a user.
+
+A flight stack is not _required_ to support all of these modes.
 
 The standard modes will be defined in an enum `MAV_STANDARD_MODE`, which has an initial value `0` is an enum that indicates "not a standard mode".
 
@@ -87,41 +89,52 @@ The proposed initial set of modes is:
           Forward-traveling vehicles maintain altitude but may be moved off their current heading by exernal forces.
         </description>
       </entry>
-      <entry value="3" name="MAV_STANDARD_MODE_SAFETY_RETURN">
-        <description>Return mode (auto).
-          Automatic mode that returns vehicle to a safe location via a safe flight path.
+      <entry value="3" name="MAV_STANDARD_MODE_RETURN_HOME">
+        <description>Return home mode (auto).
+          Automatic mode that returns vehicle to home via a safe flight path.
+          It may also automatically land the vehicle (i.e. RTL).
+          The precise flight path and landing behaviour depend on vehicle configuration and type.
+        </description>
+      </entry>
+      <entry value="4" name="MAV_STANDARD_MODE_SAFE_RECOVERY">
+        <description>Safe recovery mode (auto).
+          Automatic mode that takes vehicle to a predefined safe location via a safe flight path (rally point or mission defined landing) .
           It may also automatically land the vehicle.
           The precise return location, flight path, and landing behaviour depend on vehicle configuration and type.
         </description>
       </entry>
-      <entry value="4" name="MAV_STANDARD_MODE_LAND">
-        <description>Land mode (auto).
-          Automatic mode that lands the vehicle at the current location.
-          The precise landing behaviour depends on vehicle configuration and type.
-        </description>
-      </entry>
-      <entry value="5" name="MAV_STANDARD_MODE_TAKEOFF">
-        <description>Takeoff mode (auto).
-          Automatic takeoff mode.
-          The precise takeoff behaviour depends on vehicle configuration and type.
-        </description>
-      </entry>
-      <entry value="6" name="MAV_STANDARD_MODE_MISSION">
+      <entry value="5" name="MAV_STANDARD_MODE_MISSION">
         <description>Mission mode (automatic).
           Automatic mode that executes MAVLink missions.
           Missions are executed from the current waypoint as soon as the mode is enabled.
           If a mission cannot be executed the mission is paused.
         </description>
       </entry>
+      <entry value="6" name="MAV_STANDARD_MODE_LAND">
+        <description>Land mode (auto).
+          Automatic mode that lands the vehicle at the current location.
+          The precise landing behaviour depends on vehicle configuration and type.
+        </description>
+      </entry>
+      <entry value="7" name="MAV_STANDARD_MODE_TAKEOFF">
+        <description>Takeoff mode (auto).
+          Automatic takeoff mode.
+          The precise takeoff behaviour depends on vehicle configuration and type.
+        </description>
+      </entry>
     </enum>
 ```
 
-In future this may be extended with additional flight modes and component specific modes.
+Notes:
+- In future this set may be extended with additional flight modes and component specific modes.
+- The "return home" and "safe recovery" modes both serve the same function: getting the vehicle to a safe location in the event of a failsafe or for landing.
+  They are separated because from the user perspective the behaviour is quite different and the GCS needs to be able to present that behaviour differently.
+  - The existance of these as separate modes means that the autopilot must have separate custom modes for these if we don't publish the standard mode independently. 
 
 
 ## Setting Modes
 
-The mode will be set using a new command: `MAV_CMD_DO_SET_STANDARD_MODE`.
+A standard mode should be set using a new command: `MAV_CMD_DO_SET_STANDARD_MODE`.
 
 ```xml
       <entry value="262" name="MAV_CMD_DO_SET_STANDARD_MODE" hasLocation="false" isDestination="false">
@@ -138,10 +151,6 @@ The mode will be set using a new command: `MAV_CMD_DO_SET_STANDARD_MODE`.
       </entry>
 ```
 
-> **Note:** 
-> - Preferably we would extend [MAV_CMD_DO_SET_MODE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE) to set the standard mode using `param4`.
->   This is risky because a system that does not support the service will try to set the base and custom modes.
-> - We could make this command more generic `MAV_CMD_DO_SET_MODE_V2` and include custom and base modes in it too.
 
 ## Getting Available Modes
 
@@ -177,29 +186,88 @@ A proposal for the message is provided below.
     </message>
 ```
 
-> **Note** This message provides all modes.
-> If we only want to get standard modes (not enumerate custom modes we might instead) the message could just list the enum values for supported modes (i.e. in a comma separated string, or an array of values.
-
 ## Getting Current Standard Mode
 
-The current standard mode will be added to [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT) as an extension field.
-This allows it to be obtained alongside the base and custom modes.
-Metadata about the mode is either from the standard mode definitions or simply a name provided for custom-only modes.
+We need to be able to know the current active standard mode (if any) so that a GCS can configure itself appropriately and the user can understand the behaviour.
+
+The current base and custom modes are currently published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
+The proposal is to add the standard mode to `HEARTBEAT` as an extension field as this is the easiest for flight stacks/SDKs to use and provides the most flexibile design when 
 
 ```xml
       <extensions/>
       <field type="uint16_t" name="standard_mode" enum="MAV_STANDARD_MODE">The current active standard mode (or 0 for a custom-only mode).</field>
 ```
 
-Notes:
-- A separate message was considered, in particular because `HEARTBEAT` is so critical.
-  However this is the logical and consistent way to share modes.
-- The mode is a double byte to allow the `MAV_STANDARD_MODE` to be extended to support non-autopilot modes in future.
-
+Note that extending the `HEARTBEAT` is not mandatory but has costs/implications as discussed in teh [alternatives below](#current-mode-infer-from-custombase-modes).
 
 # Alternatives
 
-## Use standard commands rather than standard modes
+## Current mode: Infer from custom/base modes
+
+The current base and custom modes are currently published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
+The proposal is to add the standard mode to `HEARTBEAT` as an extension field.
+There are several reasons for this, one being that this is where the other mode information is. 
+
+We could instead:
+- Publish mode in a separate mode message
+- Infer the current standard mode from the custom/base modes in `HEARTBEAT`
+
+The argument for using a separate message for getting the mode is that mode information should not be in the `HEARTBEAT` anyway.
+The heartbeat is for indicating connection; using it for modes does not make sense for autopilots particularly and none for other components.
+We could publish this separately, giving us a path for eventually moving to "HEARTBEAT2"
+
+We might also infer the current standard mode from the existing base and custom mode fields in the `HEARTBEAT`.
+This would mean that the message would not have to change, but would have the following implications:
+- Requires caching the mapping to custom modes, which scales by number of autopilots in the system.
+- Requires a discrete custom mode for every standard mode.
+  For ArduPilot and PX4 this means a custom mode would have to be defined for the different return options of rally points vs RTL.
+
+
+## Setting modes: Set standard mode using mapped base/custom modes
+
+We might instead set desired standard mode using the mapped custom/based modes in [MAV_CMD_DO_SET_MODE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE).
+
+This is not considered desirable because:
+- This would imply there _must_ always be a specific custom mode for each standard mode.
+- It is more complicated for GCS/SDKs, which will have to maintain a record of the mapping between modes.
+  Maybe not a problem for just one node, but scales badly.
+- Overall it is simpler for all users for the mapping to be provided by the stack.
+
+## Setting modes: Updated generic mode setter
+
+The proposed setter command (`MAV_CMD_DO_SET_STANDARD_MODE`) just sets the standard mode, while the old command (`MAV_CMD_DO_SET_MODE`) sets base and custom modes.
+
+We can't just use [MAV_CMD_DO_SET_MODE.param4](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE) to set the standard mode as a system that does not understand this service will ignore the value and attempt to set the base/custom mode.
+
+But we could make this new setter command more generic `MAV_CMD_DO_SET_MODE_V2` and include custom and base modes in it too:
+```xml
+      <entry value="262" name="MAV_CMD_DO_SET_MODE_V2" hasLocation="false" isDestination="false">
+        <description>Set a standard or custom mode.
+          If the mode is not supported the vehicle should ACK with MAV_RESULT_FAILED.
+        </description>
+        <param index="1" label="Standard Mode" enum="MAV_STANDARD_MODE">Standard mode to set. Set to MAV_CMD_DO_SET_STANDARD_MODE if setting a custom mode.</param>
+        <param index="2" label="base mode">Base mode. Ignored if standard mode (param1) is non-zero.</param>
+        <param index="3" label="custom mode">Custom mode. Ignore if standard mode (param1) is non-zero.</param>
+        <param index="4" reserved="true" default="0"/>
+        <param index="5" reserved="true" default="0"/>
+        <param index="6" reserved="true" default="0"/>
+        <param index="7" reserved="true" default="NaN"/>
+      </entry>
+```
+
+## Getting Available modes: Flags instead of mode enumeration
+
+Instead of enumerating all available modes we could define a flag indicating the _standard_ modes that are supported.
+
+We could indicate this on a per-mode basis, for example y making `MAV_STANDARD_MODE` into a bitmask and `AVAILABLE_MODES` is just a value indicating the supported modes (or we could use a comma separated list of enum values, or whatever). 
+
+Or we could have `MAV_PROTOCOL_CAPABILITY` flags indicating that specific groups are supported - e.g. a base set, takeoff and landing, etc.
+
+All these approaches would be more efficient but would mean:
+- No support for getting custom modes.
+- The must be a way to get the current active mode as a standard mode - you could not omit publishing the standard mode as a heartbeat or otherwise.
+
+## Setting: Use standard commands rather than standard modes
 
 The main goal is to allow a vehicle to be put into standard "flight behaviours".
 This could also be done by defining suitably generic commands: e.g. [MAV_CMD_NAV_TAKEOFF](https://mavlink.io/en/messages/common.html#MAV_CMD_NAV_TAKEOFF).
@@ -207,37 +275,11 @@ This could also be done by defining suitably generic commands: e.g. [MAV_CMD_NAV
 Modes have the slight benefit that the commands already have definitions which may not be suitably generic.
 Further commands do not have to match a specific mode in all cases: using modes means that the behaviour will have an expected display in the UI.
 
-
-## Only expose standard modes
-
-`AVAILABLE_MODES` (as designed) is emitted for all modes.
-
-This is useful as it allows a UI where the GCS can display all the standard modes if it wants, or all the standard modes and separately all the custom modes (albeit these could not be translated etc).
-
-However this may be unnecessarily complicated. If we agree that we only need to list the supported modes then we could simplify work for the GCS by providing all the supported modes in a single message. Something like:
-
-```xml
-    <message id="435" name="AVAILABLE_MODES">
-      <description>Get the list of all available standard modes.
-        The message can be requested using MAV_CMD_REQUEST_MESSAGE.
-      </description>
-      <field type="char[250]" name="modes">List of enum values for all standard modes, comma separated, without null termination character.</field>
-    </message>
-```
-
-## Only expose custom modes
-
-Just implementing `AVAILABLE_MODES` would allow an anonymous flight stack to be used by a ground station in a limited way.
-
-However there would be no reliable common understanding of what each of the modes meant or what they actually are, so a GCS could not necessarily provide useful information to a user other than the name of the mode that has been entered.
-
-
-
 # Unresolved Questions
 
-- Do we need support for getting available custom modes? If we only need standard modes then we could have a much simpler `AVAILABLE_MODES` and much easier interaction for GCS.
-
-- Can we we provide more information about the current mode. E.g. in return mode, the user doesn't care about the behaviour, but a GCS might better configure itself if it knows that rally points are being used, or a mission landing.
+- [ ] Should we use a new specific setter for standard modes or a new "generic" setter for standard, custom, base modes - i.e. replacement for current mode setter?
+- [ ] If we don't publish the standard mode as a standard mode (e.g. in the heartbeat) but only infer it from the base modes we create a need for a defined mapping between custom modes and standard mode. Further, a GCS will have to maintain the 
+- [ ] Do we need support for getting available custom modes? If we only need standard modes then we could have a much simpler `AVAILABLE_MODES` and much easier interaction for GCS. But we also must publish the standard mode.
 - What modes make sense for other components? Camera etc.
 
 
