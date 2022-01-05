@@ -77,16 +77,20 @@ The proposed initial set of modes is:
         <description>Position mode (manual).
           Position-controlled and stabilized manual mode.
           When sticks are released vehicles return to their level-flight orientation.
-          Hovering vehicles actively brake and hold both position and altitude against wind and external forces,
-          Forward-traveling vehicles maintain current track and altitude.
+          Multicopter (MC) vehicles actively brake and hold both position and altitude against wind and external forces.
+          Fixed-wing (FW) vehicles maintain current track and altitude.
+          Hybrid MC/FW  ("VTOL") vehicles behave according to their current configuration/mode (FW or MC).
+          Other vehicle types should not return this mode (this may be revisited through the PR process).
         </description>
       </entry>
       <entry value="2" name="MAV_STANDARD_MODE_ALTITUDE_HOLD">
         <description>Altitude hold (manual).
           Altitude-controlled and stabilized manual mode.
           When sticks are released vehicles return to their level-flight orientation.
-          Hovering vehicles hold altitude but continue with existing momentum and may move with wind.
-          Forward-traveling vehicles maintain altitude but may be moved off their current heading by exernal forces.
+          MC vehicles hold altitude but continue with existing momentum and may move with wind.
+          FW vehicles maintain altitude but may be moved off their current heading by external forces.
+          Hybrid MC/FW ("VTOL") vehicles behave according to their current configuration/mode (FW or MC).
+          Other vehicle types should not return this mode (this may be revisited through the PR process).
         </description>
       </entry>
       <entry value="3" name="MAV_STANDARD_MODE_RETURN_HOME">
