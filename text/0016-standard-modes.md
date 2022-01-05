@@ -78,7 +78,7 @@ The proposed initial set of modes is:
           Position-controlled and stabilized manual mode.
           When sticks are released vehicles return to their level-flight orientation.
           Multicopter (MC) vehicles actively brake and hold both position and altitude against wind and external forces.
-          Fixed-wing (FW) vehicles maintain current track and altitude.
+          Fixed-wing (FW) vehicles maintain current track and altitude against wind and external forces.
           Hybrid MC/FW  ("VTOL") vehicles behave according to their current configuration/mode (FW or MC).
           Other vehicle types should not return this mode (this may be revisited through the PR process).
         </description>
