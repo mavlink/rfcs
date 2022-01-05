@@ -107,7 +107,6 @@ The proposed initial set of modes is:
         <description>Mission mode (automatic).
           Automatic mode that executes MAVLink missions.
           Missions are executed from the current waypoint as soon as the mode is enabled.
-          If a mission cannot be executed the mission is paused.
         </description>
       </entry>
       <entry value="6" name="MAV_STANDARD_MODE_LAND">
