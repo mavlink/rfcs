@@ -76,50 +76,61 @@ The proposed initial set of modes is:
       <entry value="1" name="MAV_STANDARD_MODE_POSITION_HOLD">
         <description>Position mode (manual).
           Position-controlled and stabilized manual mode.
-          When sticks are released vehicles return to their level-flight orientation.
+          When sticks are released vehicles return to their level-flight orientation and hold both position and altitude against wind and external forces.
+          Note that the precise meaning of "hold position" depends on vehicle type (for example, an MC can hold to a specify point, while a boat might either loiter around a circle centered on fixed point or drift within that circle).
           Multicopter (MC) vehicles actively brake and hold both position and altitude against wind and external forces.
-          Fixed-wing (FW) vehicles maintain current track and altitude against wind and external forces.
-          Hybrid MC/FW  ("VTOL") vehicles behave according to their current configuration/mode (FW or MC).
-          Other vehicle types should not return this mode (this may be revisited through the PR process).
+          Hybrid MC/FW ("VTOL") vehicles first transition to multicopter mode (if needed) but otherwise behave in the same way as MC vehicles.
+          Fixed-wing (FW) vehicles may not support this mode.
+          Other vehicle types may not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
-      <entry value="2" name="MAV_STANDARD_MODE_ALTITUDE_HOLD">
+      <entry value="2" name="MAV_STANDARD_MODE_CRUISE">
+        <description>Cruise mode (manual).
+          Position-controlled and stabilized manual mode.
+          When sticks are released vehicles return to their level-flight orientation and hold their original track against wind and external forces.
+          Fixed-wing (FW) vehicles level orientation and maintain current track and altitude against wind and external forces.
+          Hybrid MC/FW ("VTOL") vehicles first transition to FW mode (if needed) but otherwise behave in the same way as MC vehicles.
+          Multicopter (MC) vehicles may not support this mode.
+          Other vehicle types may not support this mode (this may be revisited through the PR process).
+        </description>
+      </entry>
+      <entry value="3" name="MAV_STANDARD_MODE_ALTITUDE_HOLD">
         <description>Altitude hold (manual).
           Altitude-controlled and stabilized manual mode.
-          When sticks are released vehicles return to their level-flight orientation.
-          MC vehicles hold altitude but continue with existing momentum and may move with wind.
-          FW vehicles maintain altitude but may be moved off their current heading by external forces.
+          When sticks are released vehicles return to their level-flight orientation and hold their altitude.
+          MC vehicles continue with existing momentum and may move with wind (or other external forces).
+          FW vehicles continue with current heading, but may be moved off-track by wind.
           Hybrid MC/FW ("VTOL") vehicles behave according to their current configuration/mode (FW or MC).
-          Other vehicle types should not return this mode (this may be revisited through the PR process).
+          Other vehicle types may not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
-      <entry value="3" name="MAV_STANDARD_MODE_RETURN_HOME">
+      <entry value="4" name="MAV_STANDARD_MODE_RETURN_HOME">
         <description>Return home mode (auto).
           Automatic mode that returns vehicle to home via a safe flight path.
           It may also automatically land the vehicle (i.e. RTL).
           The precise flight path and landing behaviour depend on vehicle configuration and type.
         </description>
       </entry>
-      <entry value="4" name="MAV_STANDARD_MODE_SAFE_RECOVERY">
+      <entry value="5" name="MAV_STANDARD_MODE_SAFE_RECOVERY">
         <description>Safe recovery mode (auto).
           Automatic mode that takes vehicle to a predefined safe location via a safe flight path (rally point or mission defined landing) .
           It may also automatically land the vehicle.
           The precise return location, flight path, and landing behaviour depend on vehicle configuration and type.
         </description>
       </entry>
-      <entry value="5" name="MAV_STANDARD_MODE_MISSION">
+      <entry value="6" name="MAV_STANDARD_MODE_MISSION">
         <description>Mission mode (automatic).
           Automatic mode that executes MAVLink missions.
           Missions are executed from the current waypoint as soon as the mode is enabled.
         </description>
       </entry>
-      <entry value="6" name="MAV_STANDARD_MODE_LAND">
+      <entry value="7" name="MAV_STANDARD_MODE_LAND">
         <description>Land mode (auto).
           Automatic mode that lands the vehicle at the current location.
           The precise landing behaviour depends on vehicle configuration and type.
         </description>
       </entry>
-      <entry value="7" name="MAV_STANDARD_MODE_TAKEOFF">
+      <entry value="8" name="MAV_STANDARD_MODE_TAKEOFF">
         <description>Takeoff mode (auto).
           Automatic takeoff mode.
           The precise takeoff behaviour depends on vehicle configuration and type.
