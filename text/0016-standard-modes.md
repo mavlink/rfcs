@@ -55,7 +55,7 @@ The design proposes a small set of modes that are (broadly speaking) commonly im
 
 Standard modes are those that are implemented in a similar way by most flight stacks, and which a GCS can present as more or less the same thing for any flight stack.
 
-The precise mechanics and behaviour do not have to be identical, but the broad intent has to be similar, and any differing behaviour across flight statcks should not be unexpected by a user.
+The precise mechanics and behaviour do not have to be identical, but the broad intent has to be similar, and any differing behaviour across flight stacks should not be unexpected by a user.
 
 A flight stack is not _required_ to support all of these modes.
 
@@ -77,14 +77,25 @@ The proposed initial set of modes is:
         <description>Position mode (manual).
           Position-controlled and stabilized manual mode.
           When sticks are released vehicles return to their level-flight orientation and hold both position and altitude against wind and external forces.
-          Note that the precise meaning of "hold position" depends on vehicle type (for example, an MC can hold to a specify point, while a boat might either loiter around a circle centered on fixed point or drift within that circle).
+          This mode can only be set by vehicles that can hold a fixed position.
           Multicopter (MC) vehicles actively brake and hold both position and altitude against wind and external forces.
           Hybrid MC/FW ("VTOL") vehicles first transition to multicopter mode (if needed) but otherwise behave in the same way as MC vehicles.
           Fixed-wing (FW) vehicles may not support this mode.
           Other vehicle types may not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
-      <entry value="2" name="MAV_STANDARD_MODE_CRUISE">
+      <entry value="2" name="MAV_STANDARD_MODE_ORBIT">
+        <description>Orbit (manual).
+          Position-controlled and stabilized manual mode.
+          The vehicle circles around a fixed setpoint in the horizontal plane at a particular radius, altitude, and direction.
+          Flight stacks may further allow manual control over the setpoint position, radius, direction, speed, and/or altitude of the circle, but this is not mandated.
+          Flight stacks may support the [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_ORBIT) for changing the orbit parameters.
+          MC and FW vehicles may support this mode.
+          Hybrid MC/FW ("VTOL") vehicles may support this mode in MC/FW or both modes; if the mode is not supported by the current configuration the vehicle should transition to the supported configuration.
+          Other vehicle types may not support this mode (this may be revisited through the PR process).
+        </description>
+      </entry>
+      <entry value="3" name="MAV_STANDARD_MODE_CRUISE">
         <description>Cruise mode (manual).
           Position-controlled and stabilized manual mode.
           When sticks are released vehicles return to their level-flight orientation and hold their original track against wind and external forces.
@@ -94,7 +105,7 @@ The proposed initial set of modes is:
           Other vehicle types may not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
-      <entry value="3" name="MAV_STANDARD_MODE_ALTITUDE_HOLD">
+      <entry value="4" name="MAV_STANDARD_MODE_ALTITUDE_HOLD">
         <description>Altitude hold (manual).
           Altitude-controlled and stabilized manual mode.
           When sticks are released vehicles return to their level-flight orientation and hold their altitude.
@@ -104,33 +115,34 @@ The proposed initial set of modes is:
           Other vehicle types may not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
-      <entry value="4" name="MAV_STANDARD_MODE_RETURN_HOME">
+
+      <entry value="5" name="MAV_STANDARD_MODE_RETURN_HOME">
         <description>Return home mode (auto).
           Automatic mode that returns vehicle to home via a safe flight path.
           It may also automatically land the vehicle (i.e. RTL).
           The precise flight path and landing behaviour depend on vehicle configuration and type.
         </description>
       </entry>
-      <entry value="5" name="MAV_STANDARD_MODE_SAFE_RECOVERY">
+      <entry value="6" name="MAV_STANDARD_MODE_SAFE_RECOVERY">
         <description>Safe recovery mode (auto).
           Automatic mode that takes vehicle to a predefined safe location via a safe flight path (rally point or mission defined landing) .
           It may also automatically land the vehicle.
           The precise return location, flight path, and landing behaviour depend on vehicle configuration and type.
         </description>
       </entry>
-      <entry value="6" name="MAV_STANDARD_MODE_MISSION">
+      <entry value="7" name="MAV_STANDARD_MODE_MISSION">
         <description>Mission mode (automatic).
           Automatic mode that executes MAVLink missions.
           Missions are executed from the current waypoint as soon as the mode is enabled.
         </description>
       </entry>
-      <entry value="7" name="MAV_STANDARD_MODE_LAND">
+      <entry value="8" name="MAV_STANDARD_MODE_LAND">
         <description>Land mode (auto).
           Automatic mode that lands the vehicle at the current location.
           The precise landing behaviour depends on vehicle configuration and type.
         </description>
       </entry>
-      <entry value="8" name="MAV_STANDARD_MODE_TAKEOFF">
+      <entry value="9" name="MAV_STANDARD_MODE_TAKEOFF">
         <description>Takeoff mode (auto).
           Automatic takeoff mode.
           The precise takeoff behaviour depends on vehicle configuration and type.
