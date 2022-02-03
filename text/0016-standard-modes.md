@@ -115,7 +115,6 @@ The proposed initial set of modes is:
           Other vehicle types must not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
-
       <entry value="5" name="MAV_STANDARD_MODE_RETURN_HOME">
         <description>Return home mode (auto).
           Automatic mode that returns vehicle to home via a safe flight path.
@@ -212,19 +211,29 @@ A proposal for the message is provided below.
     </message>
 ```
 
-## Getting Current Standard Mode
+## Getting Current Active Mode
 
 We need to be able to know the current active standard mode (if any) so that a GCS can configure itself appropriately and the user can understand the behaviour.
 
-The current base and custom modes are currently published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
-The proposal is to add the standard mode to `HEARTBEAT` as an extension field as this is the easiest for flight stacks/SDKs to use and provides the most flexibile design when 
+The proposal is to create new message with both standard and custom mode information.
+This would be emitted on mode change, and also streamed at low rate (a GCS might also query for it explicity, for example, if it noted the custom mode changing in the heartbeat).
 
 ```xml
-      <extensions/>
-      <field type="uint16_t" name="standard_mode" enum="MAV_STANDARD_MODE">The current active standard mode (or 0 for a custom-only mode).</field>
+    <message id="436" name="CURRENT_MODE">
+      <description>Get the current mode.
+        This should be emitted on any mode change, and broadcast at low rate (nominally 0.5 Hz).
+        It may be requested using MAV_CMD_REQUEST_MESSAGE.
+      </description>
+      <field type="uint8_t" name="standard_mode" enum="MAV_STANDARD_MODE">Standard mode.</field>
+      <field type="uint8_t" name="base_mode" enum="MAV_MODE_FLAG" display="bitmask">System mode bitmap.</field>
+      <field type="uint32_t" name="custom_mode">A bitfield for use for autopilot-specific flags</field>
+    </message>
 ```
 
-Note that extending the `HEARTBEAT` is not mandatory but has costs/implications as discussed in teh [alternatives below](#current-mode-infer-from-custombase-modes).
+Note that the current base and custom modes are currently (and should continue to be) published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
+Including the standard mode in the `HEARTBEAT` was discussed and discarded.
+See "Getting current mode: Use Heartbeat" below.
+
 
 # Alternatives
 
@@ -300,6 +309,19 @@ This could also be done by defining suitably generic commands: e.g. [MAV_CMD_NAV
 
 Modes have the slight benefit that the commands already have definitions which may not be suitably generic.
 Further commands do not have to match a specific mode in all cases: using modes means that the behaviour will have an expected display in the UI.
+
+## Getting current mode: Use Heartbeat
+
+The original proposal was to add the standard mode to `HEARTBEAT` as an extension field, as this is the easiest for flight stacks/SDKs to use:
+
+```xml
+      <extensions/>
+      <field type="uint16_t" name="standard_mode" enum="MAV_STANDARD_MODE">The current active standard mode (or 0 for a custom-only mode).</field>
+```
+
+The arguments against were:
+- `HEARTBEAT` is absolutely core to MAVLink. It is risky to update.
+- Modes logically shouldn't be in the `HEARTBEAT` - extending this with standard modes is compounding the issue.
 
 # Unresolved Questions
 
