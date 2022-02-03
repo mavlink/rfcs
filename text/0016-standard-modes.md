@@ -80,8 +80,8 @@ The proposed initial set of modes is:
           This mode can only be set by vehicles that can hold a fixed position.
           Multicopter (MC) vehicles actively brake and hold both position and altitude against wind and external forces.
           Hybrid MC/FW ("VTOL") vehicles first transition to multicopter mode (if needed) but otherwise behave in the same way as MC vehicles.
-          Fixed-wing (FW) vehicles may not support this mode.
-          Other vehicle types may not support this mode (this may be revisited through the PR process).
+          Fixed-wing (FW) vehicles must not support this mode.
+          Other vehicle types must not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
       <entry value="2" name="MAV_STANDARD_MODE_ORBIT">
@@ -92,7 +92,7 @@ The proposed initial set of modes is:
           Flight stacks may support the [MAV_CMD_DO_ORBIT](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_ORBIT) for changing the orbit parameters.
           MC and FW vehicles may support this mode.
           Hybrid MC/FW ("VTOL") vehicles may support this mode in MC/FW or both modes; if the mode is not supported by the current configuration the vehicle should transition to the supported configuration.
-          Other vehicle types may not support this mode (this may be revisited through the PR process).
+          Other vehicle types must not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
       <entry value="3" name="MAV_STANDARD_MODE_CRUISE">
@@ -101,8 +101,8 @@ The proposed initial set of modes is:
           When sticks are released vehicles return to their level-flight orientation and hold their original track against wind and external forces.
           Fixed-wing (FW) vehicles level orientation and maintain current track and altitude against wind and external forces.
           Hybrid MC/FW ("VTOL") vehicles first transition to FW mode (if needed) but otherwise behave in the same way as MC vehicles.
-          Multicopter (MC) vehicles may not support this mode.
-          Other vehicle types may not support this mode (this may be revisited through the PR process).
+          Multicopter (MC) vehicles must not support this mode.
+          Other vehicle types must not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
       <entry value="4" name="MAV_STANDARD_MODE_ALTITUDE_HOLD">
@@ -112,7 +112,7 @@ The proposed initial set of modes is:
           MC vehicles continue with existing momentum and may move with wind (or other external forces).
           FW vehicles continue with current heading, but may be moved off-track by wind.
           Hybrid MC/FW ("VTOL") vehicles behave according to their current configuration/mode (FW or MC).
-          Other vehicle types may not support this mode (this may be revisited through the PR process).
+          Other vehicle types must not support this mode (this may be revisited through the PR process).
         </description>
       </entry>
 
