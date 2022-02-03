@@ -290,6 +290,27 @@ But we could make this new setter command more generic `MAV_CMD_DO_SET_MODE_V2` 
       </entry>
 ```
 
+## Getting Available modes: Component Metadata rather than Message
+
+We could get the available mode information using a component metadata file.
+This has been discarded for now because component metadata has not yet formally part of the standard.
+It might reasonably replace or be used as well as the messages.
+
+The benefits are:
+- Can be extended easily with other metadata, including grouping of manual vs autonomous, standard vs custom. 
+- Provides mechanism for delivering standard documentation and additional descriptions of modes out of the box. 
+- Provides mechanism for delivering minor customisations of standard documentation out of the box - e.g. two flight stack both support standard orbit mode, but one controls altitude with sticks, and the other controls rotation direction.
+- Translation out of the box
+- Works for both custom and standard modes as peers - current approach does not allow anything other than one string for custom modes.
+- Get all the information at once using same infrastructure as for other data.
+- Avoids "yet another metadata" mechanism.
+
+The downsides are that
+- component information is not yet in the standard.
+- component information takes more effort to implement first time (e.g. mavftp, parsers), and more than parsing just a message.
+- It is less dynamic to update, though this can be supported if needed (i.e. for things like lua-script injected modes).
+
+
 ## Getting Available modes: Flags instead of mode enumeration
 
 Instead of enumerating all available modes we could define a flag indicating the _standard_ modes that are supported.
