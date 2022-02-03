@@ -232,24 +232,32 @@ This would be emitted on mode change, and also streamed at low rate (a GCS might
 
 Note that the current base and custom modes are currently (and should continue to be) published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
 Including the standard mode in the `HEARTBEAT` was discussed and discarded.
-See "Getting current mode: Use Heartbeat" below.
+See "Get Current mode from HEARTBEAT" section below.
 
 
 # Alternatives
 
-## Current mode: Infer from custom/base modes
+## Get Current mode from HEARTBEAT
 
 The current base and custom modes are currently published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
-The proposal is to add the standard mode to `HEARTBEAT` as an extension field.
-There are several reasons for this, one being that this is where the other mode information is. 
+The proposal is to get the current standard mode using a separate message.
 
 We could instead:
-- Publish mode in a separate mode message
 - Infer the current standard mode from the custom/base modes in `HEARTBEAT`
+- Publish the current standard mode as an extension field in the `HEARTBEAT`.
+- Publish mode in a separate mode message
 
-The argument for using a separate message for getting the mode is that mode information should not be in the `HEARTBEAT` anyway.
-The heartbeat is for indicating connection; using it for modes does not make sense for autopilots particularly and none for other components.
-We could publish this separately, giving us a path for eventually moving to "HEARTBEAT2"
+The original proposal was to add the standard mode to `HEARTBEAT` as an extension field, as this is the easiest for flight stacks/SDKs to use:
+
+```xml
+      <extensions/>
+      <field type="uint16_t" name="standard_mode" enum="MAV_STANDARD_MODE">The current active standard mode (or 0 for a custom-only mode).</field>
+```
+
+The arguments against were:
+- `HEARTBEAT` is absolutely core to MAVLink. It is risky to update.
+- Modes logically shouldn't be in the `HEARTBEAT` - extending this with standard modes is compounding the issue.
+- Having a separate message means that this is completely separate/orthogonal to the existing implementation.
 
 We might also infer the current standard mode from the existing base and custom mode fields in the `HEARTBEAT`.
 This would mean that the message would not have to change, but would have the following implications:
@@ -331,18 +339,6 @@ This could also be done by defining suitably generic commands: e.g. [MAV_CMD_NAV
 Modes have the slight benefit that the commands already have definitions which may not be suitably generic.
 Further commands do not have to match a specific mode in all cases: using modes means that the behaviour will have an expected display in the UI.
 
-## Getting current mode: Use Heartbeat
-
-The original proposal was to add the standard mode to `HEARTBEAT` as an extension field, as this is the easiest for flight stacks/SDKs to use:
-
-```xml
-      <extensions/>
-      <field type="uint16_t" name="standard_mode" enum="MAV_STANDARD_MODE">The current active standard mode (or 0 for a custom-only mode).</field>
-```
-
-The arguments against were:
-- `HEARTBEAT` is absolutely core to MAVLink. It is risky to update.
-- Modes logically shouldn't be in the `HEARTBEAT` - extending this with standard modes is compounding the issue.
 
 # Unresolved Questions
 
