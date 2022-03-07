@@ -6,7 +6,7 @@
 
 # Summary
 
-This RFC proposes a microservice that will allow a GCS (or MAVLink SDK) to use a safely use a "standard" set of flight modes without any prior knowledge of a flight stack.
+This RFC proposes a microservice that will allow a GCS (or MAVLink SDK) to safely use a "standard" set of flight modes without any prior knowledge of a flight stack.
 
 The proposal defines a small (initial) set of standard autopilot modes, along with mechanism to query available modes, set the standard mode, and determine the current standard mode (if a standard mode is active).
 This is sufficient to determine what modes are supported, command a flight stack into a standard mode, and have it behave in a predictable way.
