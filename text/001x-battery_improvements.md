@@ -48,7 +48,7 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
       <field type="int16_t" name="current" units="cA" invalid="UINT16_MAX">Battery current (through all cells/loads). Positive if discharging, negative if charging. UINT16_MAX: field not provided.</field>
       <field type="int32_t" name="current_consumed" units="mAh" invalid="-1">Consumed charge, -1: Current consumption estimate not provided.</field>
       <field type="int32_t" name="energy_consumed" units="hJ" invalid="-1">Consumed energy, -1: Energy consumption estimate not provided.</field>
-      <field type="int8_t" name="battery_remaining" units="%" invalid="-1">Remaining battery energy. Values: [0-100], -1: Remaining battery energy is not provided.</field>
+      <field type="int8_t" name="percent_remaining" units="%" invalid="-1">Remaining battery energy. Values: [0-100], -1: Remaining battery energy is not provided.</field>
       <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
       <field type="uint8_t" name="charge_state" enum="MAV_BATTERY_CHARGE_STATE">State for extent of discharge, provided by autopilot for warning or external reactions</field>
       <field type="uint8_t" name="mode" enum="MAV_BATTERY_MODE">Battery mode. Default (0) is that battery mode reporting is not supported or battery is in normal-use mode.</field>
