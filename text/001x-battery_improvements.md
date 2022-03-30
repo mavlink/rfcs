@@ -98,7 +98,7 @@ Questions:
 [
 What are options here?
 - Add support for either format in QGC/Mission Planner etc.
-- Flight stack send `BATTERY_STATUS` but ground station can request BATTERY_STATUS_V2 and turn off BATTERY_STATUS_V2 using SET_INTERVAL?
+- Flight stack send `BATTERY_STATUS` but ground station can request BATTERY_STATUS_V2 and turn off BATTERY_STATUS using SET_INTERVAL?
 - In a few releases we allow ground stations to set BATTERY_STATUS_V2 by default. 
 ]
 
