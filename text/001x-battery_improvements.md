@@ -117,8 +117,7 @@ Add note that it must be streamed at a low rate in order to allow detection of b
 
 Questions:
 - What low rate is OK for streaming? is there another alternative for tracking battery change
-- Perhaps charge_state, mode, and fault_bitmask could be combined into a single uint32_t status? (Feedback comment: the concept of a "charge state" doesn't make a lot of sense. It's either charging, discharging, or idle. If it's not charging/discharging due to some error, that would be indicated using one of the other fault flags. Having separate enums to convey some "charge state" is effectively redundant, since it's just telling you to look at the fault flags to understand why the "charge state" is abnormal. The same argument might be applied to mode.
-- 
+ 
 
 
 ## Migration/Discovery
