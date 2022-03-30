@@ -81,7 +81,7 @@ The proposed battery message is:
 	It should not be streamed at very low rate (less than once a minute) or streamed only on request.</description>
       <field type="uint8_t" name="id" instance="true">Battery ID</field>
       <field type="uint8_t" name="index">Cell index (0 by default). This can be iterated for batteries with more than 10 cells.</field>
-      <field type="uint16_t[12]" name="voltages" units="mV" invalid="[0]">Battery voltage of 10 cells at current index. Cells above the valid cell count for this battery should be set to 0.</field>
+      <field type="uint16_t[12]" name="voltages" units="mV" invalid="[0]">Battery voltage of 12 cells at current index. Cells above the valid cell count for this battery should be set to 0.</field>
     </message>
 ```
 
