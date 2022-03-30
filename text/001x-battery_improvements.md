@@ -67,6 +67,7 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
 
 - Do we need all the other fields?
 - Are there any other fields missing?
+- `current_consumed`, `percent_remaining`, `time_remaining` all tell much the same the same story, and can be estimated from each other. Do we need all of these, and if so which ones?
 
 
 ## Battery Cell Voltages
