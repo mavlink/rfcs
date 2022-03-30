@@ -36,7 +36,7 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
 - removes the cell voltage arrays: `voltages` and `voltages_ext`
 - adds `voltage`, the total cell voltage. This is a uint32_t to allow batteries with more than 65V.
 - removes `energy_consumed`. This essentially duplicates `current_consumed` for most purposes, and `current_consumed`/mAh is nearly ubiquitous.
-- removes `battery_function` and `type` (chemistry) as these are present in `SMART_BATTERY_INFO` and invariant. A GCS that needs this information should request it from that message on startup. NOTE THIS MEANS that the chemistry and function of a particular battery ID must be invariant!
+- removes `battery_function` and `type` (chemistry) as these are present in `SMART_BATTERY_INFO` and invariant. A GCS that needs this information should request it from that message on startup. NOTE THIS MEANS that either the chemistry and function of a particular battery ID must be invariant OR the message must be streamed. Otherwise there is no way to detect a battery change.
   ```xml
      <field type="uint8_t" name="battery_function" enum="MAV_BATTERY_FUNCTION">Function of the battery</field>
       <field type="uint8_t" name="type" enum="MAV_BATTERY_TYPE">Type (chemistry) of the battery</field>
@@ -60,10 +60,7 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
 
 
 Questions:
-- It is desirable to move static fields like the `type` (battery chemistry) and `battery_function` out of the new message because they only need to be read once, and afterwards are dead weight.
-  For this to be OK, the information either has to be non-essential (i.e might never be provided) or guaranteed to be sent in another message (this info is present in [SMART_BATTERY_INFO](https://mavlink.io/en/messages/common.html#SMART_BATTERY_INFO)).
-  - Is it non-essential?
-  - If it is essential, do we leave it in the message or mandate sending of `SMART_BATTERY_INFO`?
+
 - Do we need all the other fields?
 - Are there any other fields missing?
 
@@ -84,6 +81,16 @@ It simply sends information about which cells are in fault, providing battery ma
     </message>
 ```
 
+## SMART_BATTERY_INFO
+
+No changes are required to [SMART_BATTERY_INFO](https://mavlink.io/en/messages/common.html#SMART_BATTERY_INFO).
+
+Note however that it must be streamed at a low rate in order to allow detection of battery change.
+
+Questions:
+- What low rate is OK for streaming? is there another alternative?
+
+
 ## Migration/Discovery
 
 `BATTERY_STATUS` consumes significant bandwidth: sending `BATTERY_STATUS_V2` at the same time would just increase the problem.
@@ -94,7 +101,6 @@ What are options here?
 - Flight stack send `BATTERY_STATUS` but ground station can request BATTERY_STATUS_V2 and turn off BATTERY_STATUS_V2 using SET_INTERVAL?
 - In a few releases we allow ground stations to set BATTERY_STATUS_V2 by default. 
 ]
-
 
 
 # Alternatives
