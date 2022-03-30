@@ -35,6 +35,7 @@ There are three parts to the design:
 The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/common.html#BATTERY_STATUS) but:
 - removes the cell voltage arrays: `voltages` and `voltages_ext`
 - adds `voltage`, the total cell voltage. This is a uint32_t to allow batteries with more than 65V.
+- removes `energy_consumed`. This essentially duplicates `current_consumed` for most purposes, and `current_consumed`/mAh is nearly ubiquitous.
 
 
 ```xml
@@ -47,7 +48,6 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
       <field type="uint32_t" name="voltage" units="mV" invalid="[UINT32_MAX]">Battery voltage (total).</field>
       <field type="int16_t" name="current" units="cA" invalid="UINT16_MAX">Battery current (through all cells/loads). Positive if discharging, negative if charging. UINT16_MAX: field not provided.</field>
       <field type="int32_t" name="current_consumed" units="mAh" invalid="-1">Consumed charge, -1: Current consumption estimate not provided.</field>
-      <field type="int32_t" name="energy_consumed" units="hJ" invalid="-1">Consumed energy, -1: Energy consumption estimate not provided.</field>
       <field type="int8_t" name="percent_remaining" units="%" invalid="-1">Remaining battery energy. Values: [0-100], -1: Remaining battery energy is not provided.</field>
       <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
       <field type="uint8_t" name="charge_state" enum="MAV_BATTERY_CHARGE_STATE">State for extent of discharge, provided by autopilot for warning or external reactions</field>
