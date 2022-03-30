@@ -66,7 +66,8 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
 
 - Do we need all the other fields?
 - Are there any other fields missing?
-- `current_consumed`, `percent_remaining`, `time_remaining` all tell much the same the same story, and can be estimated from each other. Do we need all of these, and if so which ones?
+- `current_consumed`, `percent_remaining`, `time_remaining` all tell much the same story, and can be estimated from each other. Do we need all of these, and if so which ones?
+- Perhaps charge_state, mode, and fault_bitmask could be combined into a single uint32_t status? (Feedback comment: the concept of a "charge state" doesn't make a lot of sense. It's either charging, discharging, or idle. If it's not charging/discharging due to some error, that would be indicated using one of the other fault flags. Having separate enums to convey some "charge state" is effectively redundant, since it's just telling you to look at the fault flags to understand why the "charge state" is abnormal. The same argument might be applied to mode.
 
 
 ## Battery Cell Voltages
