@@ -36,14 +36,16 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
 - removes the cell voltage arrays: `voltages` and `voltages_ext`
 - adds `voltage`, the total cell voltage. This is a uint32_t to allow batteries with more than 65V.
 - removes `energy_consumed`. This essentially duplicates `current_consumed` for most purposes, and `current_consumed`/mAh is nearly ubiquitous.
-
+- removes `battery_function` and `type` (chemistry) as these are present in `SMART_BATTERY_INFO` and invariant. A GCS that needs this information should request it from that message on startup. NOTE THIS MEANS that the chemistry and function of a particular battery ID must be invariant!
+  ```xml
+     <field type="uint8_t" name="battery_function" enum="MAV_BATTERY_FUNCTION">Function of the battery</field>
+      <field type="uint8_t" name="type" enum="MAV_BATTERY_TYPE">Type (chemistry) of the battery</field>
+  ```
 
 ```xml
     <message id="???" name="BATTERY_STATUS_V2">
       <description>Battery information. Updates GCS with flight controller battery status. Smart batteries also use this message, but may additionally send SMART_BATTERY_INFO.</description>
       <field type="uint8_t" name="id" instance="true">Battery ID</field>
-      <field type="uint8_t" name="battery_function" enum="MAV_BATTERY_FUNCTION">Function of the battery</field>
-      <field type="uint8_t" name="type" enum="MAV_BATTERY_TYPE">Type (chemistry) of the battery</field>
       <field type="int16_t" name="temperature" units="cdegC" invalid="INT16_MAX">Temperature of the battery. INT16_MAX for unknown temperature.</field>
       <field type="uint32_t" name="voltage" units="mV" invalid="[UINT32_MAX]">Battery voltage (total).</field>
       <field type="int16_t" name="current" units="cA" invalid="UINT16_MAX">Battery current (through all cells/loads). Positive if discharging, negative if charging. UINT16_MAX: field not provided.</field>
