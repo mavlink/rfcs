@@ -3,6 +3,7 @@
   * Related issues: 
     - [16-cell support #1747](https://github.com/mavlink/mavlink/pull/1747)
 	- [common: added voltage and current multipliers to BATTERY_STATUS #233](https://github.com/ArduPilot/mavlink/pull/233)
+    - [Add MAV_BATTERY_CHARGE_STATE_CHARGING #1068](https://github.com/mavlink/mavlink/pull/1068)
 
   
 # Summary
@@ -109,6 +110,9 @@ This assumes that the smart battery is capable of providing the long term trend 
 ```
 
 ## SMART_BATTERY_INFO
+
+TBD:
+
 
 No changes are required to [SMART_BATTERY_INFO](https://mavlink.io/en/messages/common.html#SMART_BATTERY_INFO) fields
 
