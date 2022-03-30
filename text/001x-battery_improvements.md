@@ -11,7 +11,6 @@
 This RFC proposes:
 - a new `BATTERY_STATUS_V2` message that has a single cumulative voltage value rather than individual cell voltage arrays.
 - a new (optional) `BATTERY_VOLTAGES` message that can be scaled to as many cells as needed, and which reports them as faults.
-- mechanisms to ease supporting both message types until we can eventually deprecate `BATTERY_STATUS`
 
   
 # Motivation
@@ -112,28 +111,22 @@ This assumes that the smart battery is capable of providing the long term trend 
 
 ## SMART_BATTERY_INFO
 
-TBD:
+[SMART_BATTERY_INFO](https://mavlink.io/en/messages/common.html#SMART_BATTERY_INFO) is already deployed and it is not clear if it can be modified. It may be possible to extend.
 
-
-No changes are required to [SMART_BATTERY_INFO](https://mavlink.io/en/messages/common.html#SMART_BATTERY_INFO) fields
-
-Note however that it must be streamed at a low rate in order to allow detection of battery change, and should also be sent when the battery changes. 
-We should specify the rate.
+Add note that it must be streamed at a low rate in order to allow detection of battery change, and should also be sent when the battery changes. 
 
 Questions:
-- What low rate is OK for streaming? is there another alternative?
+- What low rate is OK for streaming? is there another alternative for tracking battery change
+- Perhaps charge_state, mode, and fault_bitmask could be combined into a single uint32_t status? (Feedback comment: the concept of a "charge state" doesn't make a lot of sense. It's either charging, discharging, or idle. If it's not charging/discharging due to some error, that would be indicated using one of the other fault flags. Having separate enums to convey some "charge state" is effectively redundant, since it's just telling you to look at the fault flags to understand why the "charge state" is abnormal. The same argument might be applied to mode.
+- 
 
 
 ## Migration/Discovery
 
 `BATTERY_STATUS` consumes significant bandwidth: sending `BATTERY_STATUS_V2` at the same time would just increase the problem.
 
-[
-What are options here?
-- Add support for either format in QGC/Mission Planner etc.
-- Flight stack send `BATTERY_STATUS` but ground station can request BATTERY_STATUS_V2 and turn off BATTERY_STATUS using SET_INTERVAL?
-- In a few releases we allow ground stations to set BATTERY_STATUS_V2 by default. 
-]
+The proposal here is that GCS should support both messages for the forseeable future.
+Flight stacks should manage their own migration after relevant ground stations have been updated.
 
 
 # Alternatives
