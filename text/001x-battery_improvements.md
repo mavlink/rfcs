@@ -44,10 +44,24 @@ The proposed message is:
       <field type="int32_t" name="current_consumed" units="mAh" invalid="-1">Consumed charge, -1: Current consumption estimate not provided.</field>
       <field type="int8_t" name="percent_remaining" units="%" invalid="-1">Remaining battery energy. Values: [0-100], -1: Remaining battery energy is not provided.</field>
       <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
-      <field type="uint8_t" name="charge_state" enum="MAV_BATTERY_CHARGE_STATE">State for extent of discharge, provided by autopilot for warning or external reactions</field>
-      <field type="uint8_t" name="mode" enum="MAV_BATTERY_MODE">Battery mode. Default (0) is that battery mode reporting is not supported or battery is in normal-use mode.</field>
-      <field type="uint32_t" name="fault_bitmask" display="bitmask" enum="MAV_BATTERY_FAULT">Fault/health indications. These should be set when charge_state is MAV_BATTERY_CHARGE_STATE_FAILED or MAV_BATTERY_CHARGE_STATE_UNHEALTHY (if not, fault reporting is not supported).</field>
+      <field type="uint32_t" name="fault_bitmask" display="bitmask" enum="MAV_BATTERY_FAULT">Fault/health/ready-to-use indications.</field>
     </message>
+```
+
+With `MAV_BATTERY_FAULT` having the following **additions** (from `MAV_BATTERY_CHARGE_STATE` and `MAV_BATTERY_MODE`):
+```xml
+    <enum name="MAV_BATTERY_FAULT" bitmask="true">
+      <description>Battery supply status flags (bitmask) indicating battery health and readiness for flight.</description>
+      ...
+      <entry value="512" name="BATTERY_FAULT_CHARGING">
+        <description>Battery is charging. Not ready to use.</description>
+      </entry>
+      <entry value="1024" name="BATTERY_FAULT_AUTO_DISCHARGING">
+        <description>Battery is auto discharging (towards storage level). Not ready to use.</description>
+      </entry>
+      <entry value="1024" name="BATTERY_FAULT_HOT_SWAP">
+        <description>Battery in hot-swap mode (current limited to prevent spikes that might damage sensitive electrical circuits). Not ready to use.</description>
+      </entry>
 ```
 
 The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/common.html#BATTERY_STATUS) but:
@@ -61,14 +75,35 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
   ```
   - A GCS that needs invariant information should read `SMART_BATTERY_INFO` on startup
   - A vehicle that allows battery swapping must stream `SMART_BATTERY_INFO` (at low rate) to ensure that battery changes are notifie (and ideally also emit it on battery change).
+- Removes [`charge_state`](https://mavlink.io/en/messages/common.html#MAV_BATTERY_CHARGE_STATE) [`mode`](https://mavlink.io/en/messages/common.html#MAV_BATTERY_MODE)
+  ```xml
+  <field type="uint8_t" name="charge_state" enum="MAV_BATTERY_CHARGE_STATE">State for extent of discharge, provided by autopilot for warning or external reactions</field>
+  <field type="uint8_t" name="mode" enum="MAV_BATTERY_MODE">Battery mode. Default (0) is that battery mode reporting is not supported or battery is in normal-use mode.</field>
+  ```
+  - The state is almost all inferred from the battery remaining. Traditionally the GCS sets appropriate levels for warning - the battery has a less accurate view on appropriate warning levels for a particular system, making this redundant. The exception is charging status.
+  - The mode is reasonable enough, but can be expressed as a fault "there is a concern with using this battery".
+
+
 
 #### Questions
 
 - Do we need all the other fields?
 - Are there any other fields missing?
 - `current_consumed`, `percent_remaining`, `time_remaining` all tell much the same story, and can be estimated from each other. Do we need all of these, and if so which ones?
-- Perhaps charge_state, mode, and fault_bitmask could be combined into a single uint32_t status? (Feedback comment: the concept of a "charge state" doesn't make a lot of sense. It's either charging, discharging, or idle. If it's not charging/discharging due to some error, that would be indicated using one of the other fault flags. Having separate enums to convey some "charge state" is effectively redundant, since it's just telling you to look at the fault flags to understand why the "charge state" is abnormal. The same argument might be applied to mode.
+- Should we have `MAV_BATTERY_FAULT` for critical level "just before deep discharge"? The battery can know this, and it might prevent over discharge.
+  ```xml
+      <entry value="1024" name="BATTERY_FAULT_CRITICAL_LEVEL">
+        <description>Battery is at critically low level. Undamaged, but not ready to use.</description>
+      </entry>
+  ```
+ - Should we have `MAV_BATTERY_FAULT` summarising "not ready to use"? Simplifies things for GCS/user as unhealthy vs you can't use this at all.
+  ```xml
+      <entry value="1024" name="BATTERY_FAULT_NOT_READY">
+        <description>Battery is not ready/safe to use. Check other bitmasks for reasons.</description>
+      </entry>
+  ``` 
 
+-
 
 ## Battery Cell Voltages
 
