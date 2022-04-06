@@ -72,7 +72,9 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
   <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
   ```
   - This is an estimated "convenience" value which can be calculated as well or better by a GCS, in particular on multi-battery systems (from original charge, `current_consumed` and looking at the rate of `current` over some time period).
-  - Better to be lightweight. 
+  - Better to be lightweight.
+- `percent_remaining` changed from int8 to uint8 (and max value set to invalid value).
+  This is consistent with other MAVLink percentage fields.
 - removes `battery_function` and `type` (chemistry) as these are present in `SMART_BATTERY_INFO` and invariant.
   ```xml
      <field type="uint8_t" name="battery_function" enum="MAV_BATTERY_FUNCTION">Function of the battery</field>
@@ -107,7 +109,6 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
       </entry>
   ``` 
 
--
 
 ## Battery Cell Voltages
 
