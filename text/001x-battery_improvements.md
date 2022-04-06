@@ -59,7 +59,7 @@ With `MAV_BATTERY_FAULT` having the following **additions** (from `MAV_BATTERY_C
       <entry value="1024" name="BATTERY_FAULT_AUTO_DISCHARGING">
         <description>Battery is auto discharging (towards storage level). Not ready to use.</description>
       </entry>
-      <entry value="1024" name="BATTERY_FAULT_HOT_SWAP">
+      <entry value="2048" name="BATTERY_FAULT_HOT_SWAP">
         <description>Battery in hot-swap mode (current limited to prevent spikes that might damage sensitive electrical circuits). Not ready to use.</description>
       </entry>
 ```
