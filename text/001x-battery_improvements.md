@@ -43,7 +43,6 @@ The proposed message is:
       <field type="int16_t" name="current" units="cA" invalid="UINT16_MAX">Battery current (through all cells/loads). Positive if discharging, negative if charging. UINT16_MAX: field not provided.</field>
       <field type="int32_t" name="current_consumed" units="mAh" invalid="-1">Consumed charge, -1: Current consumption estimate not provided.</field>
       <field type="uint8_t" name="percent_remaining" units="%" invalid="UINT8_MAX">Remaining battery energy. Values: [0-100], UINT32_MAX: Remaining battery energy is not provided.</field>
-      <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
       <field type="uint32_t" name="fault_bitmask" display="bitmask" enum="MAV_BATTERY_FAULT">Fault/health/ready-to-use indications.</field>
     </message>
 ```
@@ -68,6 +67,12 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
 - removes the cell voltage arrays: `voltages` and `voltages_ext`
 - adds `voltage`, the total cell voltage. This is a uint32_t to allow batteries with more than 65V.
 - removes `energy_consumed`. This essentially duplicates `current_consumed` for most purposes, and `current_consumed`/mAh is nearly ubiquitous.
+- removes `time_remaining`.
+  ```xml
+  <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
+  ```
+  - This is an estimated "convenience" value which can be calculated as well or better by a GCS, in particular on multi-battery systems (from original charge, `current_consumed` and looking at the rate of `current` over some time period).
+  - Better to be lightweight. 
 - removes `battery_function` and `type` (chemistry) as these are present in `SMART_BATTERY_INFO` and invariant.
   ```xml
      <field type="uint8_t" name="battery_function" enum="MAV_BATTERY_FUNCTION">Function of the battery</field>
@@ -89,7 +94,6 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
 
 - Do we need all the other fields?
 - Are there any other fields missing?
-- `current_consumed`, `percent_remaining`, `time_remaining` all tell much the same story, and can be estimated from each other. Do we need all of these, and if so which ones?
 - Should we have `MAV_BATTERY_FAULT` for critical level "just before deep discharge"? The battery can know this, and it might prevent over discharge.
   ```xml
       <entry value="1024" name="BATTERY_FAULT_CRITICAL_LEVEL">
