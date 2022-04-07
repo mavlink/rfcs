@@ -41,8 +41,8 @@ The proposed message is:
       <field type="int16_t" name="temperature" units="cdegC" invalid="INT16_MAX">Temperature of the battery. INT16_MAX field not provided.</field>
       <field type="uint32_t" name="voltage" units="mV" invalid="UINT32_MAX">Battery voltage (total). UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="current" units="mA" invalid="UINT32_MAX">Battery current (through all cells/loads). UINT32_MAX: field not provided.</field>
-      <field type="int32_t" name="current_consumed" units="mAh" invalid="-1">Consumed charge (estimate). -1: field not provided.</field>
-      <field type="int32_t" name="current_remaining" units="mAh" invalid="-1">Remaining charge (estimate). -1: field not provided.</field>
+      <field type="uint32_t" name="current_consumed" units="mAh" invalid="UINT32_MAX">Consumed charge (estimate). UINT32_MAX: field not provided.</field>
+      <field type="uint32_t" name="current_remaining" units="mAh" invalid="UINT32_MAX">Remaining charge (estimate). UINT32_MAX: field not provided.</field>
       <field type="uint8_t" name="percent_remaining" units="%" invalid="UINT8_MAX">Remaining battery energy. Values: [0-100], UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="fault_bitmask" display="bitmask" enum="MAV_BATTERY_FAULT">Fault/health/ready-to-use indications.</field>
     </message>
@@ -67,11 +67,12 @@ With `MAV_BATTERY_FAULT` having the following **additions** (from `MAV_BATTERY_C
 The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/common.html#BATTERY_STATUS) but:
 - removes the cell voltage arrays: `voltages` and `voltages_ext`
 - adds `voltage`, the total cell voltage. This is a uint32_t to allow batteries with more than 65V.
+- `current_consumed` has changed from an `int32_t` to a `uint32_t`. This allows future proofs from 32767 mAh limit to 4294967295 mAh 
 - removes `energy_consumed`. This essentially duplicates `current_consumed` for most purposes, and `current_consumed`/mAh is nearly ubiquitous.
 - adds `current_remaining`(mAh) estimate.
   - This allows a GCS to more accurately determine available current and remaining time than inferring from the `current_consumed` and `percent_remaining`.
   - Note that this also gives the current reliably on plug-in. All the other information provided by messages (other than `percent_remaining`) assumes that the battery was full when it was plugged in.
-- change `current` from a `int16_t` (cA) to a `int32_t` (mA). Maximum size was previously 327.67A, which is not large enough to be future proof.
+- change `current` from a `int16_t` (cA) to a `uint32_t` (mA). Maximum size was previously 327.67A, which is not large enough to be future proof. The value is absolute - if you're charging the value can be assumed to be in a reversed direction.
 - removes `time_remaining`.
   ```xml
   <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
