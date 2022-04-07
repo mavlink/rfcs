@@ -38,7 +38,7 @@ The proposed message is:
     <message id="???" name="BATTERY_STATUS_V2">
       <description>Battery dynamic information. This should be streamed (nominally at 1Hz). Static battery information is sent in SMART_BATTERY_INFO.</description>
       <field type="uint8_t" name="id" instance="true">Battery ID</field>
-      <field type="int16_t" name="temperature" units="cdegC" invalid="INT16_MAX">Temperature of the battery. INT16_MAX field not provided.</field>
+      <field type="int16_t" name="temperature" units="cdegC" invalid="INT16_MAX">Temperature of the whole battery pack (not internal electronics). INT16_MAX field not provided.</field>
       <field type="uint32_t" name="voltage" units="mV" invalid="UINT32_MAX">Battery voltage (total). UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="current" units="mA" invalid="UINT32_MAX">Battery current (through all cells/loads). UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="current_consumed" units="mAh" invalid="UINT32_MAX">Consumed charge (estimate). UINT32_MAX: field not provided.</field>
