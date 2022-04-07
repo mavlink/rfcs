@@ -108,6 +108,7 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
         <description>Battery is not ready/safe to use. Check other bitmasks for reasons.</description>
       </entry>
   ``` 
+- Is the size of the `current` field large enough. It has maximum value of 327.67A. We could make it a float or a uint_16 and change units to mA.
 
 
 ## Battery Cell Voltages
