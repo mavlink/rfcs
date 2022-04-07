@@ -38,11 +38,11 @@ The proposed message is:
     <message id="???" name="BATTERY_STATUS_V2">
       <description>Battery dynamic information. This should be streamed (nominally at 1Hz). Static battery information is sent in SMART_BATTERY_INFO.</description>
       <field type="uint8_t" name="id" instance="true">Battery ID</field>
-      <field type="int16_t" name="temperature" units="cdegC" invalid="INT16_MAX">Temperature of the battery. INT16_MAX for unknown temperature.</field>
-      <field type="uint32_t" name="voltage" units="mV" invalid="[UINT32_MAX]">Battery voltage (total).</field>
-      <field type="int16_t" name="current" units="cA" invalid="UINT16_MAX">Battery current (through all cells/loads). Positive if discharging, negative if charging. UINT16_MAX: field not provided.</field>
-      <field type="int32_t" name="current_consumed" units="mAh" invalid="-1">Consumed charge, -1: Current consumption estimate not provided.</field>
-      <field type="uint8_t" name="percent_remaining" units="%" invalid="UINT8_MAX">Remaining battery energy. Values: [0-100], UINT32_MAX: Remaining battery energy is not provided.</field>
+      <field type="int16_t" name="temperature" units="cdegC" invalid="INT16_MAX">Temperature of the battery. INT16_MAX field not provided.</field>
+      <field type="uint32_t" name="voltage" units="mV" invalid="UINT32_MAX">Battery voltage (total). UINT32_MAX: field not provided.</field>
+      <field type="uint32_t" name="current" units="mA" invalid="UINT32_MAX">Battery current (through all cells/loads). UINT32_MAX: field not provided.</field>
+      <field type="int32_t" name="current_consumed" units="mAh" invalid="-1">Consumed charge (estimate). -1: field not provided.</field>
+      <field type="uint8_t" name="percent_remaining" units="%" invalid="UINT8_MAX">Remaining battery energy. Values: [0-100], UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="fault_bitmask" display="bitmask" enum="MAV_BATTERY_FAULT">Fault/health/ready-to-use indications.</field>
     </message>
 ```
@@ -67,6 +67,7 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
 - removes the cell voltage arrays: `voltages` and `voltages_ext`
 - adds `voltage`, the total cell voltage. This is a uint32_t to allow batteries with more than 65V.
 - removes `energy_consumed`. This essentially duplicates `current_consumed` for most purposes, and `current_consumed`/mAh is nearly ubiquitous.
+- change `current` from a `int16_t` (cA) to a `int32_t` (mA). Maximum size was previously 327.67A, which is not large enough to be future proof.
 - removes `time_remaining`.
   ```xml
   <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
