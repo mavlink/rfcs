@@ -38,13 +38,21 @@ The proposed message is:
 
 ```xml
     <message id="???" name="BATTERY_STATUS_V2">
-      <description>Battery dynamic information. This should be streamed (nominally at 1Hz). Static battery information is sent in SMART_BATTERY_INFO.</description>
+      <description>Battery dynamic information.
+        This should be streamed (nominally at 1Hz).
+        Static/invariant battery information is sent in SMART_BATTERY_INFO.
+
+        The full-battery charge is current_remaining + current_consumed, iff both values are supplied.
+	The `current_remaining` field should only be sent if it is guaranteed to be near-accurate.
+	Power monitors typically should not send the `current_remaining` field as it can only be accurate if the battery is fully charged when the drone is turned on.
+	(A GCS can use `current_remaining` being invalid as a trigger to notify the user to fully charge the battery before flight).
+      </description>
       <field type="uint8_t" name="id" instance="true">Battery ID</field>
       <field type="int16_t" name="temperature" units="cdegC" invalid="INT16_MAX">Temperature of the whole battery pack (not internal electronics). INT16_MAX field not provided.</field>
       <field type="uint32_t" name="voltage" units="mV" invalid="UINT32_MAX">Battery voltage (total). UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="current" units="mA" invalid="UINT32_MAX">Battery current (through all cells/loads). UINT32_MAX: field not provided.</field>
-      <field type="uint32_t" name="current_consumed" units="mAh" invalid="UINT32_MAX">Consumed charge (estimate). UINT32_MAX: field not provided.</field>
-      <field type="uint32_t" name="current_remaining" units="mAh" invalid="UINT32_MAX">Remaining charge (estimate). UINT32_MAX: field not provided.</field>
+      <field type="uint32_t" name="current_consumed" units="mAh" invalid="UINT32_MAX">Consumed charge (from full). UINT32_MAX: field not provided. Note: Power modules report the current consumed since they were last turned on (the expectation is that batteries are fully charged before turning on the vehicle).</field>
+      <field type="uint32_t" name="current_remaining" units="mAh" invalid="UINT32_MAX">Remaining charge (until empty). UINT32_MAX: field not provided. Note: Power monitors should not set this value.</field>
       <field type="uint8_t" name="percent_remaining" units="%" invalid="UINT8_MAX">Remaining battery energy. Values: [0-100], UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="fault_bitmask" display="bitmask" enum="MAV_BATTERY_FAULT">Fault/health/ready-to-use indications.</field>
     </message>
@@ -73,7 +81,11 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
 - removes `energy_consumed`. This essentially duplicates `current_consumed` for most purposes, and `current_consumed`/mAh is nearly ubiquitous.
 - adds `current_remaining`(mAh) estimate.
   - This allows a GCS to more accurately determine available current and remaining time than inferring from the `current_consumed` and `percent_remaining`.
-  - Note that this also gives the current reliably on plug-in. All the other information provided by messages (other than `percent_remaining`) assumes that the battery was full when it was plugged in.
+  - Note that this also gives the current reliably on plug-in. 
+    All the other information provided by messages (other than `percent_remaining`) assumes that the battery was full when it was plugged in.
+  - Includes a note that should not be set by power modules.
+    Power modules can only provide this reliably if the battery is fully charged when they are turned on.
+    A GCS can still infer the battery remaining from the consumed current, but by setting this as empty, we tell the GCS that it can't be "sure" of the value, and should prompt the user to use full batteries.
 - change `current` from a `int16_t` (cA) to a `uint32_t` (mA). Maximum size was previously 327.67A, which is not large enough to be future proof. The value is absolute - if you're charging the value can be assumed to be in a reversed direction.
 - removes `time_remaining`.
   ```xml
