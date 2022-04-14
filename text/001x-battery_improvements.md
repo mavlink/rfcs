@@ -4,6 +4,7 @@
     - [16-cell support #1747](https://github.com/mavlink/mavlink/pull/1747)
 	- [common: added voltage and current multipliers to BATTERY_STATUS #233](https://github.com/ArduPilot/mavlink/pull/233)
     - [Add MAV_BATTERY_CHARGE_STATE_CHARGING #1068](https://github.com/mavlink/mavlink/pull/1068)
+    - dronecan / DSDL : [WIP smart battery messages](https://github.com/dronecan/DSDL/pull/7) 
 
   
 # Summary
@@ -18,6 +19,7 @@ This RFC proposes:
 The motivation is to:
 - reduce the memory required for battery reporting ([anecdotal evidence](https://github.com/ArduPilot/mavlink/pull/233#issuecomment-976197179) indicates cases with 15% of bandwidth on a default RF channel).
 - Provide a cleaner message and design for both implementers and consumers.
+- Align with DroneCan battery messages to ease transport and data conversion across different transports.
 
 The [BATTERY_STATUS](https://mavlink.io/en/messages/common.html#BATTERY_STATUS) has two arrays that can be used to report individual cell voltages (up to 14), or a single cumulative voltage, and which cannot be truncated.
 The vast majority of consumers are only interested in the total battery voltage, and either sum the battery cells or get the cumulative voltage.
