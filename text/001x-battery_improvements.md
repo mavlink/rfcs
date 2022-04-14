@@ -75,27 +75,39 @@ The proposed message is:
           Not ready to use (MAV_BATTERY_STATUS_FLAGS_READY_TO_USE would not be set).
         </description>
       </entry>
-      <entry value="4" name="MAV_BATTERY_STATUS_FLAGS_AUTO_DISCHARGING">
+      <entry value="4" name="MAV_BATTERY_STATUS_FLAGS_FAULT_CELL_BALANCING">
+        <description>
+          Battery is cell balancing (during charging).
+          Not ready to use (MAV_BATTERY_STATUS_FLAGS_READY_TO_USE would not be set).
+        </description>
+      </entry>
+      <entry value="8" name="MAV_BATTERY_STATUS_FLAGS_FAULT_CELL_IMBALANCE">
+        <description>
+          Battery cells are not balanced.
+          Not ready to use.
+        </description>
+      </entry>
+      <entry value="16" name="MAV_BATTERY_STATUS_FLAGS_AUTO_DISCHARGING">
         <description>
           Battery is auto discharging (towards storage level).
           Not ready to use (MAV_BATTERY_STATUS_FLAGS_READY_TO_USE would not be set).
         </description>
       </entry>
-      <entry value="8" name="MAV_BATTERY_STATUS_FLAGS_REQUIRES_SERVICE">
+      <entry value="32" name="MAV_BATTERY_STATUS_FLAGS_REQUIRES_SERVICE">
         <description>
           Battery requires service (not safe to fly). 
           This is set at vendor discretion.
           It is likely to be set for most faults, and may also be set according to a maintenance schedule (such as age, or number of recharge cycles, etc.).
         </description>
       </entry>
-      <entry value="16" name="MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY">
+      <entry value="64" name="MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY">
         <description>
           Battery is faulty and cannot be repaired (not safe to fly). 
           This is set at vendor discretion.
           The battery should be disposed of safely.
         </description>
       </entry>
-      <entry value="32" name="MAV_BATTERY_STATUS_FLAGS_PROTECTIONS_ENABLED">
+      <entry value="128" name="MAV_BATTERY_STATUS_FLAGS_PROTECTIONS_ENABLED">
         <description>
           Automatic battery protection monitoring is enabled. 
           When enabled, the system will monitor for certain kinds of faults, such as cells being over-voltage.
@@ -103,41 +115,47 @@ The proposed message is:
           Note that the associated fault (such as MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_VOLT) should always be set whether or not the protection system is engaged.
         </description>
       </entry>
-      <entry value="64" name="MAV_BATTERY_STATUS_FLAGS_FAULT_PROTECTION_SYSTEM">
+      <entry value="256" name="MAV_BATTERY_STATUS_FLAGS_FAULT_PROTECTION_SYSTEM">
         <description>
           The battery fault protection system had detected a fault and cut all power from the battery.
           This will only trigger if MAV_BATTERY_STATUS_FLAGS_PROTECTIONS_ENABLED is set.
           Other faults like MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_VOLT may also be set, indicating the cause of the protection fault.
         </description>
       </entry>
-      <entry value="128" name="MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_VOLT">
+      <entry value="512" name="MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_VOLT">
         <description>One or more cells are above their maximum voltage rating.</description>
       </entry>
-      <entry value="256" name="MAV_BATTERY_STATUS_FLAGS_FAULT_UNDER_VOLT">
+      <entry value="1024" name="MAV_BATTERY_STATUS_FLAGS_FAULT_UNDER_VOLT">
         <description>
           One or more cells are below their minimum voltage rating.
           A battery that had deep-discharged might be irrepairably damaged, and set both MAV_BATTERY_STATUS_FLAGS_FAULT_UNDER_VOLT and MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY.
         </description>
       </entry>
-      <entry value="512" name="MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_TEMPERATURE">
+      <entry value="2048" name="MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_TEMPERATURE">
         <description>Over-temperature fault.</description>
       </entry>
-      <entry value="1024" name="MAV_BATTERY_STATUS_FLAGS_FAULT_UNDER_TEMPERATURE">
+      <entry value="4096" name="MAV_BATTERY_STATUS_FLAGS_FAULT_UNDER_TEMPERATURE">
         <description>Under-temperature fault.</description>
       </entry>
-      <entry value="2048" name="MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_CURRENT">
+      <entry value="8192" name="MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_CURRENT">
         <description>Over-current fault.</description>
       </entry>
-      <entry value="4096" name="MAV_BATTERY_STATUS_FLAGS_FAULT_CELL_FAIL">
+      <entry value="16384" name="MAV_BATTERY_STATUS_FLAGS_FAULT_CELL_FAIL">
         <description>One or more cells have failed. The battery (or may not) may still be safe to fly.</description>
+      </entry>    
+      <entry value="32768" name="MAV_BATTERY_STATUS_FLAGS_FAULT_SHORT_CIRCUIT">
+        <description>
+          Short circuit event detected.
+          The battery (or may not) may still be safe to use (check other flags).
+        </description>
       </entry>
-      <entry value="8192" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_VOLTAGE">
+      <entry value="65536" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_VOLTAGE">
         <description>Voltage not compatible power rail voltage (batteries on same power rail should have similar voltage).</description>
       </entry>
-      <entry value="16384" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_FIRMWARE">
+      <entry value="131072" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_FIRMWARE">
         <description>Battery firmware is not compatible with current autopilot firmware.</description>
       </entry>
-      <entry value="32768" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_CELLS_CONFIGURATION">
+      <entry value="262144" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_CELLS_CONFIGURATION">
         <description>Battery is not compatible due to cell configuration (e.g. 5s1p when vehicle requires 6s).</description>
       </entry>
     </enum>
