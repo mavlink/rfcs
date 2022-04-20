@@ -143,7 +143,7 @@ The proposed message is:
       <entry value="16384" name="MAV_BATTERY_STATUS_FLAGS_FAULT_SHORT_CIRCUIT">
         <description>
           Short circuit event detected.
-          The battery (or may not) may still be safe to use (check other flags).
+          The battery may or may not be safe to use (check other flags).
         </description>
       </entry>
       <entry value="32768" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_VOLTAGE">
