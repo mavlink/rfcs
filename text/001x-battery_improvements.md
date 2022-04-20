@@ -42,16 +42,16 @@ The proposed message is:
         This should be streamed (nominally at 1Hz).
         Static/invariant battery information is sent in SMART_BATTERY_INFO.
 
-        The full-battery charge is current_remaining + current_consumed, iff both values are supplied.
+        The full-battery charge can be inferred from current_remaining and percent_remaining if both values are supplied.
         The `current_remaining` field should only be sent if it is guaranteed to be near-accurate.
-        Power monitors typically should not send the `current_remaining` field as it can only be accurate if the battery is fully charged when the drone is turned on.
+        Power monitors do not normally send the `current_remaining` field as it can only be accurate if the battery is fully charged when the drone is turned on.
         (A GCS can use `current_remaining` being invalid as a trigger to notify the user to fully charge the battery before flight).
       </description>
       <field type="uint8_t" name="id" instance="true">Battery ID</field>
       <field type="int16_t" name="temperature" units="cdegC" invalid="INT16_MAX">Temperature of the whole battery pack (not internal electronics). INT16_MAX field not provided.</field>
       <field type="uint32_t" name="voltage" units="mV" invalid="UINT32_MAX">Battery voltage (total). UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="current" units="mA" invalid="UINT32_MAX">Battery current (through all cells/loads). UINT32_MAX: field not provided.</field>
-      <field type="uint32_t" name="current_consumed" units="mAh" invalid="UINT32_MAX">Consumed charge (from full). UINT32_MAX: field not provided. Note: Power modules report the current consumed since they were last turned on (the expectation is that batteries are fully charged before turning on the vehicle).</field>
+      <field type="uint32_t" name="current_consumed" units="mAh" invalid="UINT32_MAX">Consumed charge (since vehicle powered on). UINT32_MAX: field not provided. Note: For power modules the expectation is that batteries are fully charged before turning on the vehicle.</field>
       <field type="uint32_t" name="current_remaining" units="mAh" invalid="UINT32_MAX">Remaining charge (until empty). UINT32_MAX: field not provided. Note: Power monitors should not set this value.</field>
       <field type="uint8_t" name="percent_remaining" units="%" invalid="UINT8_MAX">Remaining battery energy. Values: [0-100], UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="battery_status" display="bitmask" enum="MAV_BATTERY_STATUS_FLAGS">Fault, health, and readiness status indications.</field>
