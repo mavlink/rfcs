@@ -140,22 +140,19 @@ The proposed message is:
       <entry value="8192" name="MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_CURRENT">
         <description>Over-current fault.</description>
       </entry>
-      <entry value="16384" name="MAV_BATTERY_STATUS_FLAGS_FAULT_CELL_FAIL">
-        <description>One or more cells have failed. The battery (or may not) may still be safe to fly.</description>
-      </entry>    
-      <entry value="32768" name="MAV_BATTERY_STATUS_FLAGS_FAULT_SHORT_CIRCUIT">
+      <entry value="16384" name="MAV_BATTERY_STATUS_FLAGS_FAULT_SHORT_CIRCUIT">
         <description>
           Short circuit event detected.
           The battery (or may not) may still be safe to use (check other flags).
         </description>
       </entry>
-      <entry value="65536" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_VOLTAGE">
+      <entry value="32768" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_VOLTAGE">
         <description>Voltage not compatible power rail voltage (batteries on same power rail should have similar voltage).</description>
       </entry>
-      <entry value="131072" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_FIRMWARE">
+      <entry value="65536" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_FIRMWARE">
         <description>Battery firmware is not compatible with current autopilot firmware.</description>
       </entry>
-      <entry value="262144" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_CELLS_CONFIGURATION">
+      <entry value="131072" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_CELLS_CONFIGURATION">
         <description>Battery is not compatible due to cell configuration (e.g. 5s1p when vehicle requires 6s).</description>
       </entry>
     </enum>
