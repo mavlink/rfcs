@@ -54,7 +54,7 @@ The proposed message is:
       <field type="uint32_t" name="current_consumed" units="mAh" invalid="UINT32_MAX">Consumed charge (since vehicle powered on). UINT32_MAX: field not provided. Note: For power modules the expectation is that batteries are fully charged before turning on the vehicle.</field>
       <field type="uint32_t" name="current_remaining" units="mAh" invalid="UINT32_MAX">Remaining charge (until empty). UINT32_MAX: field not provided. Note: Power monitors should not set this value.</field>
       <field type="uint8_t" name="percent_remaining" units="%" invalid="UINT8_MAX">Remaining battery energy. Values: [0-100], UINT32_MAX: field not provided.</field>
-      <field type="uint32_t" name="battery_status" display="bitmask" enum="MAV_BATTERY_STATUS_FLAGS">Fault, health, and readiness status indications.</field>
+      <field type="uint32_t" name="status_flags" display="bitmask" enum="MAV_BATTERY_STATUS_FLAGS">Fault, health, and readiness status indications.</field>
     </message>
 ```
 
