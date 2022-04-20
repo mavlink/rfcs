@@ -147,7 +147,7 @@ The proposed message is:
         </description>
       </entry>
       <entry value="32768" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_VOLTAGE">
-        <description>Voltage not compatible power rail voltage (batteries on same power rail should have similar voltage).</description>
+        <description>Voltage not compatible with power rail voltage (batteries on same power rail should have similar voltage).</description>
       </entry>
       <entry value="65536" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_FIRMWARE">
         <description>Battery firmware is not compatible with current autopilot firmware.</description>
