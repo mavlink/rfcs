@@ -75,7 +75,7 @@ The proposed message is:
           Not ready to use (MAV_BATTERY_STATUS_FLAGS_READY_TO_USE would not be set).
         </description>
       </entry>
-      <entry value="4" name="MAV_BATTERY_STATUS_FLAGS_FAULT_CELL_BALANCING">
+      <entry value="4" name="MAV_BATTERY_STATUS_FLAGS_CELL_BALANCING">
         <description>
           Battery is cell balancing (during charging).
           Not ready to use (MAV_BATTERY_STATUS_FLAGS_READY_TO_USE would not be set).
