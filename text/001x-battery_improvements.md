@@ -41,20 +41,17 @@ The proposed message is:
       <description>Battery dynamic information.
         This should be streamed (nominally at 1Hz).
         Static/invariant battery information is sent in SMART_BATTERY_INFO.
-
-        The full-battery charge can be inferred from current_remaining and percent_remaining if both values are supplied.
-        The `current_remaining` field should only be sent if it is guaranteed to be near-accurate.
-        Power monitors do not normally send the `current_remaining` field as it can only be accurate if the battery is fully charged when the drone is turned on.
-        (A GCS can use `current_remaining` being invalid as a trigger to notify the user to fully charge the battery before flight).
+        Note that smart batteries should set the MAV_BATTERY_STATUS_FLAGS_CAPACITY_RELATIVE_TO_FULL bit to indicate that supplied capacity values are relative to a battery that is known to be full.
+        Power monitors would not set this bit, indicating that capacity_consumed is relative to drone power-on, and that other values are estimated based on the assumption that the battery was full on power-on.
       </description>
       <field type="uint8_t" name="id" instance="true">Battery ID</field>
       <field type="int16_t" name="temperature" units="cdegC" invalid="INT16_MAX">Temperature of the whole battery pack (not internal electronics). INT16_MAX field not provided.</field>
       <field type="uint32_t" name="voltage" units="mV" invalid="UINT32_MAX">Battery voltage (total). UINT32_MAX: field not provided.</field>
       <field type="uint32_t" name="current" units="mA" invalid="UINT32_MAX">Battery current (through all cells/loads). UINT32_MAX: field not provided.</field>
-      <field type="uint32_t" name="current_consumed" units="mAh" invalid="UINT32_MAX">Consumed charge (since vehicle powered on). UINT32_MAX: field not provided. Note: For power modules the expectation is that batteries are fully charged before turning on the vehicle.</field>
-      <field type="uint32_t" name="current_remaining" units="mAh" invalid="UINT32_MAX">Remaining charge (until empty). UINT32_MAX: field not provided. Note: Power monitors should not set this value.</field>
+      <field type="uint32_t" name="capacity_consumed" units="mAh" invalid="UINT32_MAX">Consumed charge. UINT32_MAX: field not provided. This is either the consumption since power-on or since the battery was full, depending on the value of MAV_BATTERY_STATUS_FLAGS_CAPACITY_RELATIVE_TO_FULL.</field>
+      <field type="uint32_t" name="capacity_remaining" units="mAh" invalid="UINT32_MAX">Remaining charge (until empty). UINT32_MAX: field not provided. Note: If MAV_BATTERY_STATUS_FLAGS_CAPACITY_RELATIVE_TO_FULL is unset, this value is based on the assumption the battery was full when the system was powered.</field>
       <field type="uint8_t" name="percent_remaining" units="%" invalid="UINT8_MAX">Remaining battery energy. Values: [0-100], UINT32_MAX: field not provided.</field>
-      <field type="uint32_t" name="status_flags" display="bitmask" enum="MAV_BATTERY_STATUS_FLAGS">Fault, health, and readiness status indications.</field>
+      <field type="uint32_t" name="status_flags" display="bitmask" enum="MAV_BATTERY_STATUS_FLAGS">Fault, health, readiness, and other status indications.</field>
     </message>
 ```
 
@@ -155,27 +152,37 @@ The proposed message is:
       <entry value="131072" name="MAV_BATTERY_STATUS_FLAGS_FAULT_INCOMPATIBLE_CELLS_CONFIGURATION">
         <description>Battery is not compatible due to cell configuration (e.g. 5s1p when vehicle requires 6s).</description>
       </entry>
+      <entry value="262144" name="MAV_BATTERY_STATUS_FLAGS_CAPACITY_RELATIVE_TO_FULL">
+        <description>
+          Battery capacity values are relative to a known-full battery.
+          If set: the supplied capacity_consumed and capacity_remaining are relative to battery full.
+          If unset: capacity_consumed is relative to drone power-on, and capacity_remaining estimated from capacity_consumed and the assumption that the battery was full at power on.
+          This bit should be set by smart batteries and unset for power modules.
+          If unset a GCS is recommended to advise that users fully charge the battery on power on.
+        </description>
+      </entry>
     </enum>
 ```
 
 The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/common.html#BATTERY_STATUS) but:
 - removes the cell voltage arrays: `voltages` and `voltages_ext`
 - adds `voltage`, the total cell voltage. This is a uint32_t to allow batteries with more than 65V.
-- `current_consumed` has changed from an `int32_t` to a `uint32_t`. This allows future proofs from 32767 mAh limit to 4294967295 mAh 
-- removes `energy_consumed`. This essentially duplicates `current_consumed` for most purposes, and `current_consumed`/mAh is nearly ubiquitous.
-- adds `current_remaining`(mAh) estimate.
-  - This allows a GCS to more accurately determine available current and remaining time than inferring from the `current_consumed` and `percent_remaining`.
-  - Note that this also gives the current reliably on plug-in. 
-    All the other information provided by messages (other than `percent_remaining`) assumes that the battery was full when it was plugged in.
-  - Includes a note that should not be set by power modules.
-    Power modules can only provide this reliably if the battery is fully charged when they are turned on.
-    A GCS can still infer the battery remaining from the consumed current, but by setting this as empty, we tell the GCS that it can't be "sure" of the value, and should prompt the user to use full batteries.
+- `current_consumed` has changed to capacity_consumed, and from an `int32_t` to a `uint32_t`.
+  This future proofs from 32767 mAh limit to 4294967295 mAh 
+- removes `energy_consumed`, which essentially duplicates `capacity_consumed` for most purposes, and `capacity_consumed` in mAh is nearly ubiquitous.
+- adds `capacity_remaining`(mAh).
+  - This allows a GCS to more accurately determine available current and remaining time than inferring from the `capacity_consumed` and `percent_remaining`.
+  - This will be reliable for smart batteries.
+  - A flag has been added to indicate whether this is calculated from an assumed or known-full battery.
+    A GCS can use this to prompt that batteries be fully charged for power modules.
+- Note that with capacity consumed and remaining, you have the full capacity and you could calculate the percentage remaining.
+  However percentage remaining is supplied anyway, as the other values are optional, and this is actually the one value that most users really want.
 - change `current` from a `int16_t` (cA) to a `uint32_t` (mA). Maximum size was previously 327.67A, which is not large enough to be future proof. The value is absolute - if you're charging the value can be assumed to be in a reversed direction.
 - removes `time_remaining`.
   ```xml
   <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
   ```
-  - This is an estimated "convenience" value which can be calculated as well or better by a GCS, in particular on multi-battery systems (from original charge, `current_consumed` and looking at the rate of `current` over some time period).
+  - This is an estimated "convenience" value which can be calculated as well or better by a GCS, in particular on multi-battery systems (from original charge, `capacity_consumed` and looking at the rate of `current` over some time period).
   - Better to be lightweight.
 - `percent_remaining` changed from int8 to uint8 (and max value set to invalid value).
   This is consistent with other MAVLink percentage fields.
