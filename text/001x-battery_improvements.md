@@ -161,6 +161,9 @@ The proposed message is:
           If unset a GCS is recommended to advise that users fully charge the battery on power on.
         </description>
       </entry>
+      <entry value="4,294,967,295" name="MAV_BATTERY_STATUS_FLAGS_EXTENDED">
+        <description>Reserved (not used). If set, this will indicate that an additional status field exists for higher status values.</description>
+      </entry>
     </enum>
 ```
 
