@@ -5,7 +5,7 @@
 	- [common: added voltage and current multipliers to BATTERY_STATUS #233](https://github.com/ArduPilot/mavlink/pull/233)
     - [Add MAV_BATTERY_CHARGE_STATE_CHARGING #1068](https://github.com/mavlink/mavlink/pull/1068)
     - dronecan / DSDL : [WIP smart battery messages](https://github.com/dronecan/DSDL/pull/7) 
-- [DS-013 Pixhawk Smart Battery Standard](https://docs.google.com/document/d/1xYBhhgjND_RS2W3Hq0Seyc-R661ge3zonk9DTIyHclc/edit) v0.4.0
+    - [DS-013 Pixhawk Smart Battery Standard](https://docs.google.com/document/d/1xYBhhgjND_RS2W3Hq0Seyc-R661ge3zonk9DTIyHclc/edit) v0.4.0
 
   
 # Summary
