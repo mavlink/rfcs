@@ -179,7 +179,7 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
     A GCS can use this to prompt that batteries be fully charged for power modules.
 - Note that with capacity consumed and remaining, you have the full capacity and you could calculate the percentage remaining.
   However percentage remaining is supplied anyway, as the other values are optional, and this is actually the one value that most users really want.
-- change `current` from a `int16_t` (cA) to a `uint32_t` (mA). Maximum size was previously 327.67A, which is not large enough to be future proof. The value is absolute - if you're charging the value can be assumed to be in a reversed direction.
+- change `current` from a `int16_t` (cA) to a `int32_t` (mA). Maximum size was previously 327.67A, which is not large enough to be future proof. New value gives up to 2,147,483A. The value is positive when discharging, and negative when charging.
 - removes `time_remaining`.
   ```xml
   <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
