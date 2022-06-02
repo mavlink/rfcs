@@ -69,7 +69,6 @@ The proposed message is:
       <entry value="2" name="MAV_BATTERY_STATUS_FLAGS_CHARGING">
         <description>
           Battery is charging.
-          Not ready to use (MAV_BATTERY_STATUS_FLAGS_READY_TO_USE would not be set).
         </description>
       </entry>
       <entry value="4" name="MAV_BATTERY_STATUS_FLAGS_CELL_BALANCING">
