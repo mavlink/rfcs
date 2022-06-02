@@ -63,7 +63,7 @@ The proposed message is:
       <entry value="1" name="MAV_BATTERY_STATUS_FLAGS_READY_TO_USE">
         <description>
           The battery is ready to use (fly).
-          Only set if the battery is safe and ready to fly with (not charging, no critical faults, such as those that would set MAV_BATTERY_STATUS_FLAGS_REQUIRES_SERVICE or MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY, etc.).
+          Set if the battery has no known issues that would make it unsafe to fly with. This includes critical faults, such as those that would set MAV_BATTERY_STATUS_FLAGS_REQUIRES_SERVICE or MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY).
         </description>
       </entry>
       <entry value="2" name="MAV_BATTERY_STATUS_FLAGS_CHARGING">
