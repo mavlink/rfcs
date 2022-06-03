@@ -64,8 +64,8 @@ The proposed message is:
       <entry value="1" name="MAV_BATTERY_STATUS_FLAGS_NOT_READY_TO_USE">
         <description>
           The battery is not ready to use (fly).
-          Set if the battery has faults that would make it unsafe to fly with.
-          It aggregates other serious faults, like MAV_BATTERY_STATUS_FLAGS_REQUIRES_SERVICE, MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY and others (at manufacturer/integrator discretion).
+          Set if the battery has faults or other conditions that make it unsafe to fly with.
+          Note: It will be the logical OR of other status bits (chosen by the manufacturer/integrator).
         </description>
       </entry>
       <entry value="2" name="MAV_BATTERY_STATUS_FLAGS_CHARGING">
