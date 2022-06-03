@@ -61,10 +61,11 @@ The proposed message is:
 ```xml
     <enum name="MAV_BATTERY_STATUS_FLAGS" bitmask="true">
       <description>Battery status flags for fault, health and state indication.</description>
-      <entry value="1" name="MAV_BATTERY_STATUS_FLAGS_READY_TO_USE">
+      <entry value="1" name="MAV_BATTERY_STATUS_FLAGS_NOT_READY_TO_USE">
         <description>
-          The battery is ready to use (fly).
-          Set if the battery has no known issues that would make it unsafe to fly with. This includes critical faults, such as those that would set MAV_BATTERY_STATUS_FLAGS_REQUIRES_SERVICE or MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY).
+          The battery is not ready to use (fly).
+          Set if the battery has faults that would make it unsafe to fly with.
+          It aggregates other serious faults, like MAV_BATTERY_STATUS_FLAGS_REQUIRES_SERVICE, MAV_BATTERY_STATUS_FLAGS_BAD_BATTERY and others (at manufacturer/integrator discretion).
         </description>
       </entry>
       <entry value="2" name="MAV_BATTERY_STATUS_FLAGS_CHARGING">
@@ -75,7 +76,7 @@ The proposed message is:
       <entry value="4" name="MAV_BATTERY_STATUS_FLAGS_CELL_BALANCING">
         <description>
           Battery is cell balancing (during charging).
-          Not ready to use (MAV_BATTERY_STATUS_FLAGS_READY_TO_USE would not be set).
+          Not ready to use (MAV_BATTERY_STATUS_FLAGS_NOT_READY_TO_USE may be set).
         </description>
       </entry>
       <entry value="8" name="MAV_BATTERY_STATUS_FLAGS_FAULT_CELL_IMBALANCE">
@@ -87,7 +88,7 @@ The proposed message is:
       <entry value="16" name="MAV_BATTERY_STATUS_FLAGS_AUTO_DISCHARGING">
         <description>
           Battery is auto discharging (towards storage level).
-          Not ready to use (MAV_BATTERY_STATUS_FLAGS_READY_TO_USE would not be set).
+          Not ready to use (MAV_BATTERY_STATUS_FLAGS_NOT_READY_TO_USE would be set).
         </description>
       </entry>
       <entry value="32" name="MAV_BATTERY_STATUS_FLAGS_REQUIRES_SERVICE">
