@@ -107,10 +107,10 @@ The proposed message is:
       </entry>
       <entry value="128" name="MAV_BATTERY_STATUS_FLAGS_PROTECTIONS_ENABLED">
         <description>
-          Automatic battery protection monitoring is enabled. 
+          Automatic battery protection monitoring is enabled.
           When enabled, the system will monitor for certain kinds of faults, such as cells being over-voltage.
           If a fault is triggered then and protections are enabled then a safety fault (MAV_BATTERY_STATUS_FLAGS_FAULT_PROTECTION_SYSTEM) will be set and power from the battery will be stopped.
-          Note that the associated fault (such as MAV_BATTERY_STATUS_FLAGS_FAULT_OVER_VOLT) should always be set whether or not the protection system is engaged.
+          Note that battery protection monitoring should only be enabled when the vehicle is landed. Once the vehicle is armed, or starts moving, the protections should be disabled to prevent false positives from disabling the output.
         </description>
       </entry>
       <entry value="256" name="MAV_BATTERY_STATUS_FLAGS_FAULT_PROTECTION_SYSTEM">
