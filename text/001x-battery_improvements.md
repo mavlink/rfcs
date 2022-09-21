@@ -155,10 +155,9 @@ The proposed message is:
       </entry>
       <entry value="262144" name="MAV_BATTERY_STATUS_FLAGS_CAPACITY_RELATIVE_TO_FULL">
         <description>
-          Battery capacity values are relative to a known-full battery.
-          If set: the supplied capacity_consumed and capacity_remaining are relative to battery full.
-          If unset: capacity_consumed is relative to drone power-on, and capacity_remaining estimated from capacity_consumed and the assumption that the battery was full at power on.
-          This bit should be set by smart batteries and unset for power modules.
+          Battery capacity_consumed and capacity_remaining values are relative to a full battery (they sum to the total capacity of the battery).
+          This flag would be set for a smart battery that can accurately determine its remaining charge across vehicle reboots and discharge/recharge cycles.
+          If unset the capacity_consumed indicates the consumption since vehicle power-on, as measured using a power monitor. The capacity_remaining, if provided, indicates the estimated remaining capacity on the assumption that the battery was full on vehicle boot.
           If unset a GCS is recommended to advise that users fully charge the battery on power on.
         </description>
       </entry>
