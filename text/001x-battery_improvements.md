@@ -169,18 +169,18 @@ The proposed message is:
 
 The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/common.html#BATTERY_STATUS) but:
 - removes the cell voltage arrays: `voltages` and `voltages_ext`
-- adds `voltage`, the total cell voltage. This is a uint32_t to allow batteries with more than 65V.
-- `current_consumed` has changed to capacity_consumed, and from an `int32_t` to a `uint32_t`.
-  This future proofs from 32767 mAh limit to 4294967295 mAh 
+- adds `voltage`, the total cell voltage. This is a float to allow batteries with more than 65V and also very small voltage changes.
+- `current_consumed` has changed to capacity_consumed, and from an `int32_t` to a `float` in A.
+  This future proofs from 32767 mAh limit and allows very large and very small values.
 - removes `energy_consumed`, which essentially duplicates `capacity_consumed` for most purposes, and `capacity_consumed` in mAh is nearly ubiquitous.
-- adds `capacity_remaining`(mAh).
+- adds `capacity_remaining`(Ah) as a `float`.
   - This allows a GCS to more accurately determine available current and remaining time than inferring from the `capacity_consumed` and `percent_remaining`.
   - This will be reliable for smart batteries.
   - A flag has been added to indicate whether this is calculated from an assumed or known-full battery.
     A GCS can use this to prompt that batteries be fully charged for power modules.
 - Note that with capacity consumed and remaining, you have the full capacity and you could calculate the percentage remaining.
   However percentage remaining is supplied anyway, as the other values are optional, and this is actually the one value that most users really want.
-- change `current` from a `int16_t` (cA) to a `int32_t` (mA). Maximum size was previously 327.67A, which is not large enough to be future proof. New value gives up to 2,147,483A. The value is positive when discharging, and negative when charging.
+- change `current` from a `int16_t` (cA) to a `float` (A). Maximum size was previously 327.67A, which is not large enough to be future proof. New value gives full range and both very small and very high values.
 - removes `time_remaining`.
   ```xml
   <field type="uint32_t" name="time_remaining" units="s" invalid="UINT32_MAX">Remaining battery time (estimated), UINT32_MAX: Remaining battery time estimate not provided.</field>
