@@ -1,9 +1,9 @@
-  * Start date: 2021-02-21
-  * State: Accepted Draft (2023-04-26)
+- **Start date:** 2021-02-21
+  - **State:** Accepted Draft (2023-04-26)
     - Accepted in principle
     - Not prototyped and therefore expected to change
-  * Contributors: HamishWillee <hamishwillee@gmail.com>, Lorenz Meier <lorenz@px4.io>, ...
-  * Related issues: 
+  - **Contributors:** HamishWillee <hamishwillee@gmail.com>, Lorenz Meier <lorenz@px4.io>, Beat Kung, ...
+  - **Related issues:** 
     - Discussion PR: https://github.com/mavlink/mavlink/issues/1165, 
     - Initial proposal: https://docs.google.com/document/d/1LIcfOL3JrX-EznvXArna1h-sZ7va7LRTteIUzISuD8c/edit
 
@@ -11,12 +11,12 @@
 
 This RFC proposes a microservice that will allow a GCS (or MAVLink SDK) to safely use a "standard" set of flight modes without any prior knowledge of a flight stack.
 
-The proposal defines a small (initial) set of standard autopilot modes, along with mechanism to query available modes, set the standard mode, and determine the current standard mode (if a standard mode is active).
+The proposal defines a small (initial) set of standard autopilot modes, along with mechanism to query available modes, determine if available modes have changed, set the standard mode, and determine the current standard mode (if a standard mode is active) or custom mode.
 This is sufficient to determine what modes are supported, command a flight stack into a standard mode, and have it behave in a predictable way.
 
 The mechanism also enables, but does not define, standard modes for other non-autopilot components like cameras, gimbals, etc.
 
-The design uses a new message for returning the available modes, and for setting the standard mode.
+The design uses a new message for returning the available modes and determining when the available modes have changed, and a command for setting the standard mode.
 An extension field is added to the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT) to publish the current standard mode (if enabled).
 
 The service is a pure addition: it has no impact or side effects when used with systems that do not implement or understand it.
@@ -28,9 +28,9 @@ The service is a pure addition: it has no impact or side effects when used with 
 # Motivation
 
 This service will allow a GCS to provide baseline support for common flight behaviour and test behaviour without explicit customisation for each autopilot.
-
 This is therefore a big step towards MAVLink being capable of being truly autopilot-agnostic for a useful minimal set of functionality.
 
+In addition it will allow at least some support for a ground station to present custom modes in the UI (both static and dynamic)
 
 ### Background
 
@@ -50,11 +50,11 @@ However because these are all identified by different custom mode identifiers on
 
 The design proposes a small set of modes that are (broadly speaking) commonly implemented across flight stacks, along with mechanisms to:
 - determine what modes are available
+- be notified if the available modes change
 - set the standard mode
-- infer the current standard mode, if active.
+- infer the current standard mode, if active
 
-
-## Standard modes
+## Standard Modes
 
 Standard modes are those that are implemented in a similar way by most flight stacks, and which a GCS can present as more or less the same thing for any flight stack.
 
@@ -179,7 +179,6 @@ A standard mode should be set using a new command: `MAV_CMD_DO_SET_STANDARD_MODE
       </entry>
 ```
 
-
 ## Getting Available Modes
 
 A new message will be added for enumerating all available modes (standard, base, and custom) for the current vehicle type:
@@ -188,8 +187,11 @@ A new message will be added for enumerating all available modes (standard, base,
   It is internal and should not be relied upon to have any order between reboots.
 - If there is a direct correlation between a standard mode and a custom mode this should be treated as just one mode (the standard mode) and emitted once.
 - The GCS can request this message using `MAV_CMD_REQUEST_MESSAGE`, specifying either "send all modes" or "send mode with this index".
-- The message will include a mode name that will be used to provide a string for the GCS to represent custom modes.
-  It would be empty for standard modes, for which name strings and translations may be hard coded into the GCS.
+- The message will include a `mode_name` field that can act as both a key for determining mode metadata, or as a fallback string if the GCS has no metadata for the mode.
+  This can be used to provide metadata (or minimally a mode name) for dynamic modes, and to provide customised data for any other mode.
+  The field must be human readable and autopilot-unique.
+  Generally it need not be set for standard modes, where the ground station might be expected to already have metadata.
+  For more information see [Modes Metadata](#modes-metadata) below.
 - The flight should only emit each mode once.
   If a mode is both custom and standard it should be emitted as a "standard mode" (this allows the GCS to list the "standard modes" and separately show the additional "custom modes").
 - The modes that are emitted depend on the current vehicle type.
@@ -210,7 +212,7 @@ A proposal for the message is provided below.
       <field type="uint8_t" name="standard_mode" enum="MAV_STANDARD_MODE">Standard mode.</field>
       <field type="uint8_t" name="base_mode" enum="MAV_MODE_FLAG" display="bitmask">System mode bitmap.</field>
       <field type="uint32_t" name="custom_mode">A bitfield for use for autopilot-specific flags</field>
-      <field type="char[50]" name="mode_name">Name of custom mode, with null termination character. Should be omitted for standard modes.</field>
+      <field type="char[50]" name="mode_name">Mode name, with null termination character. Used as a metadata key if GCS has matching metadata, otherwise as a fallback mode name string for use in GCS.</field>
     </message>
 ```
 
@@ -233,9 +235,41 @@ This would be emitted on mode change, and also streamed at low rate (a GCS might
     </message>
 ```
 
-Note that the current base and custom modes are currently (and should continue to be) published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
-Including the standard mode in the `HEARTBEAT` was discussed and discarded.
-See "Get Current mode from HEARTBEAT" section below.
+
+## Dynamic Mode Changes
+
+MAVLink systems that support dynamic creation and removal of modes at runtime (for example, using Lua or other onboard scripting languages, or offboard from a companion computer) may emit the following message, iterating a sequence number, to notify a GCS of that the modes have changed.
+The GCS is then expected to re-request the list of modes (`AVAILABLE_MODES`).
+
+The message is an optional part of the specification.
+If supported it should be emitted on mode change, and otherwise at low rate (nominally 0.1 Hz).
+
+```xml
+    <message id="437" name="AVAILABLE_MODES_MONITOR">
+      <description>A change to the sequence number indicates that the set of AVAILABLE_MODES has changed.
+        A receiver must re-request all available modes whenever the sequence number changes.
+        This is only emitted after the first change and should then be broadcast at low rate (nominally 0.3 Hz) and on change.
+      </description>
+      <field type="uint8_t" name="seq">Sequence number. The value iterates sequentially whenever AVAILABLE_MODES changes (e.g. support for a new mode is added/removed dynamically).</field>
+    </message>
+```
+
+## Mode Metadata
+
+Mode metadata is the information that a ground station uses represent a mode in the UI.
+Minimally this includes the mode name, but might also include descriptions, translations and other information (mode metadata schema is yet to be defined).
+
+Ground stations are expected to use the following "fallback" approach for matching modes to their metadata:
+
+1. `mode_name` field as a metadata key. This should be used if it is defined and there is matching metadata.
+2. `standard_mode`: Use if no metadata can be matched using `mode_name`.
+3. `custom_mode`: Use if no metadata can be matched using `mode_name` or `standard_mode`.
+4. `mode_name` field as a fallback mode name string. This should be used as the name if no other metadata can be mapped.
+
+This allows "full" autopilot-specific metadata to be provided for modes, including dynamic modes such as Lua scripts (where the `custom_mode` might be dynamically allocated).
+It also allows overriding of any existing metadata for any mode with vehicle-specific data.
+ 
+Note that the `mode_name` must be human readable and unique for the autopilot.
 
 
 # Alternatives
@@ -342,14 +376,19 @@ This could also be done by defining suitably generic commands: e.g. [MAV_CMD_NAV
 Modes have the slight benefit that the commands already have definitions which may not be suitably generic.
 Further commands do not have to match a specific mode in all cases: using modes means that the behaviour will have an expected display in the UI.
 
+## Mode MetaData: Use a specific metadata key rather than mode name
+
+Using a specific metadata key would make the implementation more "clear", separating the fallback mode name string from the key used for translation.
+This would reduce the chance of name clashes.
+However the cost would be addition of a specific field, potentially losing the effect of zero-byte truncation.
+
+Note that the `custom_mode` field cannot be used as the key because it may need to be dynamically allocated (otherwise it would need to be allocated ahead of time, or inferred using a hash, potentially resulting in clashes).
 
 # Unresolved Questions
 
-- [ ] Should we use a new specific setter for standard modes or a new "generic" setter for standard, custom, base modes - i.e. replacement for current mode setter?
-- [ ] If we don't publish the standard mode as a standard mode (e.g. in the heartbeat) but only infer it from the base modes we create a need for a defined mapping between custom modes and standard mode. Further, a GCS will have to maintain the 
-- [ ] Do we need support for getting available custom modes? If we only need standard modes then we could have a much simpler `AVAILABLE_MODES` and much easier interaction for GCS. But we also must publish the standard mode.
-- What modes make sense for other components? Camera etc.
-
+- [ ] Can only a flight stack support this protocol, or can it be supported by a Companion computer, or both? If so, how are conflicts resolved.
+- [ ] What modes make sense for other components? Camera etc.
+- [ ] Codify standard mode metadata? English string to be emitted? Long name, short name, Standard description text? 
 
 # References
 
