@@ -235,6 +235,9 @@ This would be emitted on mode change, and also streamed at low rate (a GCS might
     </message>
 ```
 
+Note that the current base and custom modes are currently (and should continue to be) published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
+Including the standard mode in the `HEARTBEAT` was discussed and discarded.
+See "Get Current mode from HEARTBEAT" section below.
 
 ## Dynamic Mode Changes
 
