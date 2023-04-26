@@ -1,4 +1,7 @@
   * Start date: 2021-02-21
+  * State: Accepted Draft (2023-04-26)
+    - Accepted in principle
+    - Not prototyped and therefore expected to change
   * Contributors: HamishWillee <hamishwillee@gmail.com>, Lorenz Meier <lorenz@px4.io>, ...
   * Related issues: 
     - Discussion PR: https://github.com/mavlink/mavlink/issues/1165, 
