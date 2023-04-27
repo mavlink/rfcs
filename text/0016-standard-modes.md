@@ -188,7 +188,7 @@ A new message will be added for enumerating all available modes (standard, base,
 - If there is a direct correlation between a standard mode and a custom mode this should be treated as just one mode (the standard mode) and emitted once.
 - The GCS can request this message using `MAV_CMD_REQUEST_MESSAGE`, specifying either "send all modes" or "send mode with this index".
 - The message will include a `mode_name` field that can act as both a key for determining mode metadata, or as a fallback string if the GCS has no metadata for the mode.
-  This can be used to provide metadata (or minimally a mode name) for dynamic modes, and to provide customised data for any other mode.
+  This can be used to override metadata on existing modes, for example to enhance standard metadata with additional information about autopilot-specific behaviour, or can provide metadata for any other static or dynamic mode.
   The field must be human readable and autopilot-unique.
   Generally it need not be set for standard modes, where the ground station might be expected to already have metadata.
   For more information see [Modes Metadata](#modes-metadata) below.
