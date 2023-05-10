@@ -230,6 +230,7 @@ This would be emitted on mode change, and also streamed at low rate (a GCS might
       </description>
       <field type="uint8_t" name="standard_mode" enum="MAV_STANDARD_MODE">Standard mode.</field>
       <field type="uint32_t" name="custom_mode">A bitfield for use for autopilot-specific flags</field>
+      <field type="uint32_t" name="intended_custom_mode" invalid="0">The custom_mode of the mode that was last commanded by the user (for example, with MAV_CMD_DO_SET_STANDARD_MODE, MAV_CMD_DO_SET_MODE or via RC). This should usually be the same as custom_mode. It will be different if the vehicle is unable to enter the intended mode, or has left that mode due to a failsafe condition. 0 indicates the intended custom mode is unknown/not supplied</field>
     </message>
 ```
 
