@@ -11,7 +11,7 @@
     - https://github.com/mavlink/rfcs/pull/24 - remove unnecessary base_mode info from messages
     - https://github.com/mavlink/rfcs/pull/23 - Metadata support/overrides and dynamic modes
     - https://github.com/mavlink/rfcs/pull/25 - Add intended custom mode.
-    - https://github.com/mavlink/rfcs/pull/26 - Add MAV_MODE_PROPERTY flag
+    - https://github.com/mavlink/rfcs/commit/3e25c19b73a77b0a8fabc62cc752a90acf3a7160 - Add MAV_MODE_PROPERTY flag
 
 # Summary
 
