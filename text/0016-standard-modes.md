@@ -234,6 +234,8 @@ This would be emitted on mode change, and also streamed at low rate (a GCS might
     </message>
 ```
 
+The message also includes a field `intended_custom_mode`, which indicates the last (custom) mode that was commanded.
+This should match the `custom_mode` but might not if a commanded mode cannot be entered, or if the mode is exited due to a failsafe.
 Note that the current custom mode is also published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
 Including the standard mode in the `HEARTBEAT` was discussed and discarded.
 See "Get Current mode from HEARTBEAT" section below.
