@@ -6,6 +6,11 @@
   - **Related issues:** 
     - Discussion PR: https://github.com/mavlink/mavlink/issues/1165, 
     - Initial proposal: https://docs.google.com/document/d/1LIcfOL3JrX-EznvXArna1h-sZ7va7LRTteIUzISuD8c/edit
+  - **Modification PRs:** 
+    - https://github.com/mavlink/mavlink/pull/1915/ - changes arising from prototyping
+    - https://github.com/mavlink/rfcs/pull/24 - remove unnecessary base_mode info from messages
+    - https://github.com/mavlink/rfcs/pull/23 - Metadata support/overrides and dynamic modes
+    - https://github.com/mavlink/rfcs/pull/25 - Add intended custom mode.
 
 # Summary
 
@@ -230,8 +235,12 @@ This would be emitted on mode change, and also streamed at low rate (a GCS might
       </description>
       <field type="uint8_t" name="standard_mode" enum="MAV_STANDARD_MODE">Standard mode.</field>
       <field type="uint32_t" name="custom_mode">A bitfield for use for autopilot-specific flags</field>
+      <field type="uint32_t" name="intended_custom_mode" invalid="0">The custom_mode of the mode that was last commanded by the user (for example, with MAV_CMD_DO_SET_STANDARD_MODE, MAV_CMD_DO_SET_MODE or via RC). This should usually be the same as custom_mode. It will be different if the vehicle is unable to enter the intended mode, or has left that mode due to a failsafe condition. 0 indicates the intended custom mode is unknown/not supplied</field>
     </message>
 ```
+
+The message also includes a field `intended_custom_mode`, which indicates the last (custom) mode that was commanded.
+This should match the `custom_mode` but might not if a commanded mode cannot be entered, or if the mode is exited due to a failsafe.
 
 Note that the current custom mode is also published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
 Including the standard mode in the `HEARTBEAT` was discussed and discarded.
