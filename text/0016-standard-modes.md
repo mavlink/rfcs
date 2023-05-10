@@ -6,6 +6,11 @@
   - **Related issues:** 
     - Discussion PR: https://github.com/mavlink/mavlink/issues/1165, 
     - Initial proposal: https://docs.google.com/document/d/1LIcfOL3JrX-EznvXArna1h-sZ7va7LRTteIUzISuD8c/edit
+  - **Modification PRs:** 
+    - https://github.com/mavlink/mavlink/pull/1915/ - changes arising from prototyping
+    - https://github.com/mavlink/rfcs/pull/24 - remove unnecessary base_mode info from messages
+    - https://github.com/mavlink/rfcs/pull/23 - Metadata support/overrides and dynamic modes
+    - https://github.com/mavlink/rfcs/pull/25 - Add intended custom mode.
 
 # Summary
 
