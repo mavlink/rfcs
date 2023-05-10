@@ -6,11 +6,12 @@
   - **Related issues:** 
     - Discussion PR: https://github.com/mavlink/mavlink/issues/1165, 
     - Initial proposal: https://docs.google.com/document/d/1LIcfOL3JrX-EznvXArna1h-sZ7va7LRTteIUzISuD8c/edit
-  - **Modification PRs:** 
     - https://github.com/mavlink/mavlink/pull/1915/ - changes arising from prototyping
+  - **Modification PRs:** 
     - https://github.com/mavlink/rfcs/pull/24 - remove unnecessary base_mode info from messages
     - https://github.com/mavlink/rfcs/pull/23 - Metadata support/overrides and dynamic modes
     - https://github.com/mavlink/rfcs/pull/25 - Add intended custom mode.
+    - https://github.com/mavlink/rfcs/pull/26 - Add MAV_MODE_PROPERTY flag
 
 # Summary
 
@@ -54,10 +55,17 @@ However because these are all identified by different custom mode identifiers on
 # Detailed Design
 
 The design proposes a small set of modes that are (broadly speaking) commonly implemented across flight stacks, along with mechanisms to:
+
 - determine what modes are available
 - be notified if the available modes change
 - set the standard mode
 - infer the current standard mode, if active
+- determine how the mode should be displayed
+
+There are additional optional messages/features to allow:
+- Modes to be enabled and disabled dynamically
+- Override of mode metadata (provide a metadata key)
+
 
 ## Standard Modes
 
@@ -70,6 +78,7 @@ A flight stack is not _required_ to support all of these modes.
 The standard modes will be defined in an enum `MAV_STANDARD_MODE`, which has an initial value `0` is an enum that indicates "not a standard mode".
 
 The proposed initial set of modes is:
+
 ```xml
     <enum name="MAV_STANDARD_MODE">
       <description>Standard modes with a well understood meaning across flight stacks and vehicle types.
@@ -164,7 +173,6 @@ Notes:
   They are separated because from the user perspective the behaviour is quite different and the GCS needs to be able to present that behaviour differently.
   - The existance of these as separate modes means that the autopilot must have separate custom modes for these if we don't publish the standard mode independently. 
 
-
 ## Setting Modes
 
 A standard mode should be set using a new command: `MAV_CMD_DO_SET_STANDARD_MODE`.
@@ -188,7 +196,7 @@ A standard mode should be set using a new command: `MAV_CMD_DO_SET_STANDARD_MODE
 
 A new message will be added for enumerating all available modes (standard and custom) for the current vehicle type:
 - The message will include the total number of modes and the index of the current mode.
-  This indexing is provided to allow a GCS to confirm that all modes have been collector and re-request any that are missing.
+  This indexing is provided to allow a GCS to confirm that all modes have been collected, and re-request any that are missing.
   It is internal and should not be relied upon to have any order between reboots.
 - If there is a direct correlation between a standard mode and a custom mode this should be treated as just one mode (the standard mode) and emitted once.
 - The GCS can request this message using `MAV_CMD_REQUEST_MESSAGE`, specifying either "send all modes" or "send mode with this index".
@@ -197,7 +205,7 @@ A new message will be added for enumerating all available modes (standard and cu
   The field must be human readable and autopilot-unique.
   Generally it need not be set for standard modes, where the ground station might be expected to already have metadata.
   For more information see [Modes Metadata](#modes-metadata) below.
-- The flight should only emit each mode once.
+- The flight stack should only emit each mode once on request.
   If a mode is both custom and standard it should be emitted as a "standard mode" (this allows the GCS to list the "standard modes" and separately show the additional "custom modes").
 - The modes that are emitted depend on the current vehicle type.
   For example, "takeoff" would not be emitted for a rover type, but would for a copter.
@@ -216,8 +224,31 @@ A proposal for the message is provided below.
       <field type="uint8_t" name="mode_index">The current mode index within number_modes, indexed from 1.</field>
       <field type="uint8_t" name="standard_mode" enum="MAV_STANDARD_MODE">Standard mode.</field>
       <field type="uint32_t" name="custom_mode">A bitfield for use for autopilot-specific flags</field>
+      <field type="uint32_t" name="properties" enum="MAV_MODE_PROPERTY">Mode properties.</field>
       <field type="char[50]" name="mode_name">Mode name, with null termination character. Used as a metadata key if GCS has matching metadata, otherwise as a fallback mode name string for use in GCS.</field>
     </message>
+```
+
+The message includes a `properties` field that can take any of the following enumerated values.
+These flags allow the flight stack to provide a hint to a GCS about how a mode should be used, and is primarily intended for custom modes.
+For example, the `MAV_MODE_PROPERTY_ADVANCED` indicates a mode that is harder to fly, and might be separated from other modes in the UI.
+
+```xml
+    <enum name="MAV_MODE_PROPERTY" bitmask="true">
+      <description>Mode properties.
+      </description>
+      <entry value="1" name="MAV_MODE_PROPERTY_ADVANCED">
+        <description>If set, this mode is an advanced mode.
+          For example a rate-controlled manual mode might be advanced, whereas a position-controlled manual mode is not.
+          A GCS can optionally use this flag to configure the UI for its intended users.
+        </description>
+      </entry>
+      <entry value="2" name="MAV_MODE_PROPERTY_NOT_USER_SELECTABLE">
+        <description>If set, this mode should not be added to the list of selectable modes.
+          The mode might still be selected by the FC directly (for example as part of a failsafe).
+        </description>
+      </entry>
+    </enum>
 ```
 
 ## Getting Current Active Mode
