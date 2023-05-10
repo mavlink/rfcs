@@ -182,7 +182,7 @@ A standard mode should be set using a new command: `MAV_CMD_DO_SET_STANDARD_MODE
 
 ## Getting Available Modes
 
-A new message will be added for enumerating all available modes (standard, base, and custom) for the current vehicle type:
+A new message will be added for enumerating all available modes (standard and custom) for the current vehicle type:
 - The message will include the total number of modes and the index of the current mode.
   This indexing is provided to allow a GCS to confirm that all modes have been collector and re-request any that are missing.
   It is internal and should not be relied upon to have any order between reboots.
@@ -208,7 +208,6 @@ A proposal for the message is provided below.
       <field type="uint8_t" name="number_modes">The total number of available modes for the current vehicle type.</field>
       <field type="uint8_t" name="mode_index">The current mode index within number_modes, indexed from 1.</field>
       <field type="uint8_t" name="standard_mode" enum="MAV_STANDARD_MODE">Standard mode.</field>
-      <field type="uint8_t" name="base_mode" enum="MAV_MODE_FLAG" display="bitmask">System mode bitmap.</field>
       <field type="uint32_t" name="custom_mode">A bitfield for use for autopilot-specific flags</field>
       <field type="char[50]" name="mode_name">Name of custom mode, with null termination character. Should be omitted for standard modes.</field>
     </message>
@@ -228,12 +227,11 @@ This would be emitted on mode change, and also streamed at low rate (a GCS might
         It may be requested using MAV_CMD_REQUEST_MESSAGE.
       </description>
       <field type="uint8_t" name="standard_mode" enum="MAV_STANDARD_MODE">Standard mode.</field>
-      <field type="uint8_t" name="base_mode" enum="MAV_MODE_FLAG" display="bitmask">System mode bitmap.</field>
       <field type="uint32_t" name="custom_mode">A bitfield for use for autopilot-specific flags</field>
     </message>
 ```
 
-Note that the current base and custom modes are currently (and should continue to be) published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
+Note that the current custom mode is also published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
 Including the standard mode in the `HEARTBEAT` was discussed and discarded.
 See "Get Current mode from HEARTBEAT" section below.
 
@@ -242,7 +240,7 @@ See "Get Current mode from HEARTBEAT" section below.
 
 ## Get Current mode from HEARTBEAT
 
-The current base and custom modes are currently published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
+The current custom mode (and base mode) are published in the [HEARTBEAT](https://mavlink.io/en/messages/common.html#HEARTBEAT).
 The proposal is to get the current standard mode using a separate message.
 
 We could instead:
@@ -262,14 +260,14 @@ The arguments against were:
 - Modes logically shouldn't be in the `HEARTBEAT` - extending this with standard modes is compounding the issue.
 - Having a separate message means that this is completely separate/orthogonal to the existing implementation.
 
-We might also infer the current standard mode from the existing base and custom mode fields in the `HEARTBEAT`.
+We might also infer the current standard mode from the existing custom mode field in the `HEARTBEAT`.
 This would mean that the message would not have to change, but would have the following implications:
 - Requires caching the mapping to custom modes, which scales by number of autopilots in the system.
 - Requires a discrete custom mode for every standard mode.
   For ArduPilot and PX4 this means a custom mode would have to be defined for the different return options of rally points vs RTL.
 
 
-## Setting modes: Set standard mode using mapped base/custom modes
+## Setting modes: Set standard mode using mapped custom modes
 
 We might instead set desired standard mode using the mapped custom/based modes in [MAV_CMD_DO_SET_MODE](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE).
 
@@ -283,7 +281,7 @@ This is not considered desirable because:
 
 The proposed setter command (`MAV_CMD_DO_SET_STANDARD_MODE`) just sets the standard mode, while the old command (`MAV_CMD_DO_SET_MODE`) sets base and custom modes.
 
-We can't just use [MAV_CMD_DO_SET_MODE.param4](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE) to set the standard mode as a system that does not understand this service will ignore the value and attempt to set the base/custom mode.
+We can't just use [MAV_CMD_DO_SET_MODE.param4](https://mavlink.io/en/messages/common.html#MAV_CMD_DO_SET_MODE) to set the standard mode as a system that does not understand this service will ignore the value and attempt to set the custom mode.
 
 But we could make this new setter command more generic `MAV_CMD_DO_SET_MODE_V2` and include custom and base modes in it too:
 ```xml
