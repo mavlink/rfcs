@@ -6,6 +6,7 @@
     - [Add MAV_BATTERY_CHARGE_STATE_CHARGING #1068](https://github.com/mavlink/mavlink/pull/1068)
     - dronecan / DSDL : [WIP smart battery messages](https://github.com/dronecan/DSDL/pull/7) 
     - [DS-013 Pixhawk Smart Battery Standard](https://docs.google.com/document/d/1xYBhhgjND_RS2W3Hq0Seyc-R661ge3zonk9DTIyHclc/edit) v0.4.0
+    - [Common: rename SMART_BATTERY_INFO to BATTERY_INFO and add SOH](https://github.com/mavlink/mavlink/pull/2070)
 
   
 # Summary
@@ -41,7 +42,7 @@ The proposed message is:
     <message id="369" name="BATTERY_STATUS_V2">
       <description>Battery dynamic information.
         This should be streamed (nominally at 1Hz).
-        Static/invariant battery information is sent in SMART_BATTERY_INFO.
+        Static/invariant battery information is sent in BATTERY_INFO.
         Note that smart batteries should set the MAV_BATTERY_STATUS_FLAGS_CAPACITY_RELATIVE_TO_FULL bit to indicate that supplied capacity values are relative to a battery that is known to be full.
         Power monitors would not set this bit, indicating that capacity_consumed is relative to drone power-on, and that other values are estimated based on the assumption that the battery was full on power-on.
       </description>
@@ -189,13 +190,13 @@ The message is heavily based on [BATTERY_STATUS](https://mavlink.io/en/messages/
   - Better to be lightweight.
 - `percent_remaining` changed from int8 to uint8 (and max value set to invalid value).
   This is consistent with other MAVLink percentage fields.
-- removes `battery_function` and `type` (chemistry) as these are present in `SMART_BATTERY_INFO` and invariant.
+- removes `battery_function` and `type` (chemistry) as these are present in `BATTERY_INFO` and are invariant.
   ```xml
      <field type="uint8_t" name="battery_function" enum="MAV_BATTERY_FUNCTION">Function of the battery</field>
      <field type="uint8_t" name="type" enum="MAV_BATTERY_TYPE">Type (chemistry) of the battery</field>
   ```
-  - A GCS that needs invariant information should read `SMART_BATTERY_INFO` on startup
-  - A vehicle that allows battery swapping must stream `SMART_BATTERY_INFO` (at low rate) to ensure that battery changes are notifie (and ideally also emit it on battery change).
+  - A GCS that needs invariant information should read `BATTERY_INFO` on startup
+  - A vehicle that allows battery swapping must stream `BATTERY_INFO` (at low rate) to ensure that battery changes are notifie (and ideally also emit it on battery change).
 - New `battery_status` (`MAV_BATTERY_STATUS_FLAGS`) replaces [`fault_bitmask`](https://mavlink.io/en/messages/common.html#MAV_BATTERY_FAULT), [`charge_state`](https://mavlink.io/en/messages/common.html#MAV_BATTERY_CHARGE_STATE) and [`mode`](https://mavlink.io/en/messages/common.html#MAV_BATTERY_MODE)
   ```xml
   <field type="uint8_t" name="charge_state" enum="MAV_BATTERY_CHARGE_STATE">State for extent of discharge, provided by autopilot for warning or external reactions</field>
@@ -260,14 +261,11 @@ This assumes that the smart battery is capable of providing the long term trend 
     </message>
 ```
 
-## SMART_BATTERY_INFO
+## BATTERY_INFO
 
-[SMART_BATTERY_INFO](https://mavlink.io/en/messages/common.html#SMART_BATTERY_INFO) is already deployed and it is not clear if it can be modified. It may be possible to extend.
+[BATTERY_INFO](https://mavlink.io/en/messages/common.html#BATTERY_INFO) is WIP in common. This has been renamed from `SMART_BATTERY_INFO` as there were no known implementations.
 
 Add note that it must be streamed at a low rate in order to allow detection of battery change, and should also be sent when the battery changes. 
-
-Questions:
-- What low rate is OK for streaming? is there another alternative for tracking battery change
  
 
 
