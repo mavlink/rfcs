@@ -10,9 +10,9 @@ The scope of this document is to define a message definition set and protocol fo
 
 ## Motivation
 
-There is an increasing demand for using UAVs to deliver chemicals in agriculture for crop protection. This most commonly happens in the form of sprayers or spreaders. Sprayers are typically for liquid payloads and spreaders for granualar solids. This has resulted on many indepent solutions to the problem, all using their own version of a black box. This often leaves aerial applicators unable to provide transparency into their service from a regulatory compliance side of things or for customer satisfaction in a situation where very hazardous chemical are frequently applied. This should not be the case. 
+There is an increasing demand for using UAVs to deliver chemicals in agriculture for crop protection. This most commonly happens in the form of sprayers or spreaders. Sprayers are typically for liquid payloads and spreaders for granular solids. This has resulted in many indepent solutions to the problem, all using their own version of a black box. This often leaves aerial applicators unable to provide transparency into their service from a regulatory compliance side of things or for customer satisfaction in a situation where very hazardous chemical are frequently applied. This should not be the case.
 
-From the technical side of things, the concept of operations around agricultural applications provide the opportunity to push the techical envelope without a safety risk to people. Thus expanding MAVLink support into the space will inherently increase adoption of MAVLink which will help validate other aspects of the standard in an unstructured enviornment. So putting a little investment in agriculture specific solutions IMO has out sized benefits.
+From the technical side of things, the concept of operations around agricultural applications provide the opportunity to push the techical envelope without a safety risk to people. Thus, expanding MAVLink support into the space will inherently increase adoption of MAVLink which will help validate other aspects of the standard in an unstructured enviornment. So putting a little investment in agriculture specific solutions IMO has out sized benefits.
 
 ## Detailed Design
 
@@ -20,7 +20,7 @@ From the technical side of things, the concept of operations around agricultural
 
 For those not familiar with aerial application in Agriculture, I strongly recommend using the [Aerial Applicator's Manual](https://www.epa.gov/system/files/documents/2023-11/national-aerial-applicator-manual-2014.pdf). Specifically Chapter 4.
 
-I used the [MAVLink Gimbal Protocol](https://mavlink.io/en/services/gimbal_v2.html) as my template. I must admit that I do not like the concept of splitting the manager and device. I think it over complicates but I still followed the pattern since there is context I am likely missing. In this PR you will see a proposal that is the device only, but adding on the manager layer is pretty trivial. That being said, I would like to see strong justification for the addition of a manager before I will agree to add it in during the implementation.
+I used the [MAVLink Gimbal Protocol](https://mavlink.io/en/services/gimbal_v2.html) as my template. I must admit, I do not like the concept of splitting the manager and device. I think it over complicates the protocol but I still followed the pattern since there is context I am likely missing. In this PR you will see a proposal that is the device only, but adding on the manager layer is pretty trivial. That being said, I would like to see strong justification for the addition of a manager before I will agree to add it in during the implementation.
 
 ### Test Cases
 
