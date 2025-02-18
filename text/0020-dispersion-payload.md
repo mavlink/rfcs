@@ -74,3 +74,4 @@ After reviewing other submissions, I think I might have gone too far down this p
 - Hylio: https://www.hyl.io/
 - Rotor: https://rotor.ai/
 - Guardian Agriculture: https://guardian.ag/
+- PYKA: https://www.flypyka.com/
