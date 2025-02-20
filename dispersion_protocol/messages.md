@@ -28,8 +28,6 @@ This message should be published a low regular rate (e.g. 5 Hz) but also during 
 
 | Field Name        | Type       |        Units         | Values                                                            | Description                                                                    |
 | :---------------- | :--------- | :------------------: | :---------------------------------------------------------------- | :----------------------------------------------------------------------------- |
-| target_system     | `uint8_t`  |                      |                                                                   | System ID uniquely identifying the vehicle this payload device is attached to  |
-| target_component  | `uint8_t`  |                      |                                                                   | Component ID uniquely identifying this device on the system                    |
 | timestamp_ns      | `uint64_t` |          ns          |                                                                   | Unix time stamp                                                                |
 | flags             | `uint16_t` |                      | [DISPERSION_DEVICE_STATUS_FLAGS](#dispersion_device_status_flags) | Current flags set by the device                                                |
 | failure_flags     | `uint32_t` |                      | [DISPERSION_DEVICE_ERRORS](#dispersion_device_errors)             | Failure flags (0 for no failure). Any failure indicates the system has stopped |
