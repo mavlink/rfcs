@@ -97,7 +97,7 @@ The dispersion type a device is setup for. Dispersion types specify the units fo
 
 ## DISPERSION_DEVICE_ERRORS
 
-(Bitmask) Dispersion device (low level) error flags. Any error flag indicates the device has turned off.
+(Bitmask) Dispersion device error flags. Any error flag indicates the device has turned off.
 
 | Value | Name                                                | Description                                                 |
 | :---- | :-------------------------------------------------- | :---------------------------------------------------------- |
@@ -114,17 +114,17 @@ The dispersion type a device is setup for. Dispersion types specify the units fo
 
 ## DISPERSION_DEVICE_WARNINGS
 
-(Bitmask) Dispersion device (low level) warning flags. Any warning flag indicates an issue that does not block operation of the device.
+(Bitmask) Dispersion device warning flags. Any warning flag indicates an issue that does not block operation of the device.
 
 | Value | Name                                                  | Description                                            |
 | :---- | :---------------------------------------------------- | :----------------------------------------------------- |
-| 1     | DISPERSION_DEVICE_WARNINGS_UNKNOWN                    | Device has had an unknown error                        |
+| 1     | DISPERSION_DEVICE_WARNINGS_UNKNOWN                    | Device has had an unknown warning                      |
 | 2     | DISPERSION_DEVICE_WARNINGS_LOG_FULL                   | Device log file has reached its memory limit.          |
 | 4     | DISPERSION_DEVICE_WARNINGS_FILL_LEVEL_DETECTOR_BROKEN | There is an issue with the fill level detector system. |
 
 # Commands
 
-## MAV_CMD_CONFIG_DISPERSION_DEVICE_PARAMS
+## MAV_CMD_DO_CONFIG_DISPERSION_PARAMS
 
 This command provides the necessary run time information for the dispersion device to support a specific configuration associated with the target dispersion profile.
 
@@ -138,9 +138,9 @@ This command provides the necessary run time information for the dispersion devi
 | 6 pressure_max        | If this is a spray dispersion system, maximum pressure the current configuration supports                                    | Invalid:NaN, <pressure_min Units:Pa         |
 | 7 target_fill_level   | Target payload amount for device. This will be ignored if the capability flags do not indiciate fill level detection support | Invalid: NaN Units: liters or kg            |
 
-## MAV_CMD_SET_DISPERSION_DEVICE_RATE
+## MAV_CMD_DO_SET_DISPERSION_RATE
 
-Command to provide real time adjustment to dispersion device output for a given dispersion profile configured using [MAV_CMD_CONFIG_DISPERSION_DEVICE_PARAMS](#mav_cmd_config_dispersion_device_params).
+Command to provide real time adjustment to dispersion device output for a given dispersion profile configured using [MAV_CMD_DO_CONFIG_DISPERSION_PARAMS](#mav-cmd-do-config-dispersion-params).
 
 | Param (Label)            | Description                                                                           | Values                                             |
 | :----------------------- | :------------------------------------------------------------------------------------ | :------------------------------------------------- |
@@ -152,9 +152,9 @@ Command to provide real time adjustment to dispersion device output for a given 
 | 6                        | Empty.                                                                                |                                                    |
 | 7                        | Empty.                                                                                |                                                    |
 
-## MAV_CMD_SET_DISPERSION_DEVICE_LOCK
+## MAV_CMD_DO_SET_DISPERSION_LOCK
 
-Command for locking/unlocking the device from responding to [MAV_CMD_SET_DISPERSION_DEVICE_RATE](#mav-cmd-set-dispersion-device-rate) messages. When locked, the device should stop dispersing.
+Command for locking/unlocking the device from responding to [MAV_CMD_DO_SET_DISPERSION_RATE](#mav-cmd-do-set-dispersion-rate) messages. When locked, the device should stop dispersing.
 
 | Param (Label)  | Description                                                                                                                 | Values                                    |
 | :------------- | :-------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------- |
