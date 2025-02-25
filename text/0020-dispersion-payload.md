@@ -2,8 +2,8 @@
 
 - Start date: 2025-02-18
 - Contributors: Wesley Murray <murraywj97@gmail.com>, ...
-- Related issues:  N/A
-  
+- Related issues: N/A
+
 ## Summary
 
 The scope of this document is to define a message definition set and protocol for interacting with a dispersion payload to ensure effective control as well as compliance and efficacy reporting. The goal is to create an agreed-on standard for what data is necessary and how it should be used so that there can be more transparency in the UAV crop protection space.
@@ -39,15 +39,16 @@ A procotol can be very difficult to analyze in isolation so I started by creatin
 [x] dynamically adjust deposition rate based on aircraft speed
 [x] get payload information for planning (ie lead in/out distances, spray leg length, etc)
 
- - Swath width will be configured during planning so OOS
+- Swath width will be configured during planning so OOS
 
 [x] data for compliance and efficancy reporting can be extracted
 
- - Factors that cannot be known by the dispersion device is OOS and can be collected in other parts of the system (ie wind, chemical being applied, etc)
+- Factors that cannot be known by the dispersion device is OOS and can be collected in other parts of the system (ie wind, chemical being applied, etc)
 
 [x] payload is at target fill and ready to go
 [x] spot spraying. This happens at the planning level. This protocol supports setting flow rate at specific locations which is enough for spot spraying.
 [x] communication buses might be lossy so protocol must handle failure detection.
+[x] ability to construct a synchronized timestamp across mavlink nodes to account for latency in commands when generating reports
 
 ### Implementation
 
@@ -55,10 +56,19 @@ After reviewing other submissions, I think I might have gone too far down this p
 
 ### Questions
 
-1. This is a combined protocol for spraying and spreading since there are many common elements. Should this be split up?
-1. For any kind of effective reporting, not only do the messages needs to be defined but there should also be a degree of standardization on how that information gets logged so utilities can interact with it. Making logging suggestions seemed out of scope here but is there anything I should add to nudge people in the right direction?
-1. Is a dispersion manager needed? I genuinely believe the source should not matter. Anything should be able to send a request and it get processed in the order it is received. The only time any prioritization should occur is manual triggers vs automated. No this could be handled through a manager but it is pretty easy implement with just the deivce using the MANUAL vs AUTO request type. I also expect there to be multiple possible viable sources for manual on/off live at any given moment. All should be immediately respected. I feel like the overhead with a manager only allowign two control sources could make this over complicated.
+1. ~~This is a combined protocol for spraying and spreading since there are many common elements. Should this be split up?~~
+1. ~~For any kind of effective reporting, not only do the messages needs to be defined but there should also be a degree of standardization on how that information gets logged so utilities can interact with it. Making logging suggestions seemed out of scope here but is there anything I should add to nudge people in the right direction?~~
+1. ~~Is a dispersion manager needed? I genuinely believe the source should not matter. Anything should be able to send a request and it get processed in the order it is received. The only time any prioritization should occur is manual triggers vs automated. No this could be handled through a manager but it is pretty easy implement with just the deivce using the MANUAL vs AUTO request type. I also expect there to be multiple possible viable sources for manual on/off live at any given moment. All should be immediately respected. I feel like the overhead with a manager only allowign two control sources could make this over complicated.~~
 1. Am I missing any critical workflows or test cases? Ie Debug level motor controller and motor information (deemed out of scope, should be a separate protocol for general motor controller and motor information)
+1. should we encourage using something like the parameter protocol rather than a command message for configuration?
+
+### Tentative Decisions
+
+1. the combined protocol makes sense with the addition of an enum indicating type in the relevant messages
+1. dispersion payloads will be implemented as standalone MAVLink devices
+1. a logging infrastructure is proposed
+1. a dispersion manager will not be used
+1. eliminate request message in favor of mav command infrastructure
 
 ## Alternatives
 
@@ -67,8 +77,9 @@ After reviewing other submissions, I think I might have gone too far down this p
 
 ## References
 
+- Pix4D Spot Spraying Article: https://www.pix4d.com/blog/variable-rate-application-wheat-field/
 - Aerial Applicator's Manual: https://www.epa.gov/system/files/documents/2023-11/national-aerial-applicator-manual-2014.pdf
-- MAVLink Gimbal Protocol: https://mavlink.io/en/services/gimbal_v2.html 
+- MAVLink Gimbal Protocol: https://mavlink.io/en/services/gimbal_v2.html
 - XAG P150: https://www.xa.com/en/p150
 - DJI Agras T40: https://www.dji.com/t40
 - Hylio: https://www.hyl.io/
