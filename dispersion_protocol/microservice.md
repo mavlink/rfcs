@@ -120,6 +120,8 @@ Both of the log files above should follow the format outlined below and use the 
 
 This log file should be a binary file with a maximum size limit dictated by the underlying device compute system. On log file creation, the file header as specified below should be written. After the header is the mavlink message definitions. The mavlink message definitions are to be written in the format of a single entry as noted below by writing the entire XML file repersentation as an entry payload. After the header, any number of entries can be added. This file can contain any data. Each entry into the file will have a header and payload.
 
+It is expected that endianness match the mavlink spec for [pack format](https://mavlink.io/en/guide/serialization.html#packet_format) (little-endian).
+
 The file structure has the following sections:
 
 1. Header
@@ -128,11 +130,11 @@ The file structure has the following sections:
 
 File Header (28bytes)
 
-| Field          | Type      | Description                                                    |
-| :------------- | :-------- | :------------------------------------------------------------- |
-| uuid           | uint128_t | A unique identifier for this log file.                         |
-| timestamp_us   | uint64_t  | Unix timstamp that notes when logging started in microseconds. |
-| format_version | uint32_t  | Version number for this file format.                           |
+| Field          | Type     | Description                                                    |
+| :------------- | :------- | :------------------------------------------------------------- |
+| uuid           | char[16] | A unique identifier for this log file.                         |
+| timestamp_us   | uint64_t | Unix timstamp that notes when logging started in microseconds. |
+| format_version | uint32_t | Version number for this file format.                           |
 
 Mavlink Message Definitions
 
