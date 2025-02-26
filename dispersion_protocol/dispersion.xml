@@ -1,3 +1,4 @@
+<!-- https://github.com/ArduPilot/pymavlink/blob/master/generator/mavschema.xsd -->
 <?xml version="1.0"?>
 <mavlink>
   <include>standard.xml</include>
@@ -26,15 +27,15 @@
     <enum name="DISPERSION_DEVICE_CAP_FLAGS" bitmask="true">
       <description>Gimbal device (low level) capability flags (bitmap).</description>
       <entry value="1" name="DISPERSION_DEVICE_CAP_FLAGS_SPRAYER">
-        <description>Device supports dispersing granular payloads.</description>
+        <description>Device supports dispersing liquid payloads.</description>
       </entry>
       <entry value="2" name="DISPERSION_DEVICE_CAP_FLAGS_SPREADER">
-        <description>Device supports dispersing liquid payloads.</description>
+        <description>Device supports dispersing granular payloads.</description>
       </entry>
       <entry value="4" name="DISPERSION_DEVICE_CAP_FLAGS_DYNAMIC_SPEED_CORRECTIONS">
         <description>Device supports varying dispersion rate with speed changes up to provided limits.</description>
       </entry>
-      <entry value="8" name="DISPERSION_DEVICE_CAP_FILL_LEVEL_DETECTION">
+      <entry value="8" name="DISPERSION_DEVICE_CAP_FILL_LEVEL_MEASURE">
         <description>Device supports measuring its own fill level.</description>
       </entry>
     </enum>
@@ -67,10 +68,10 @@
       <entry value="8" name="DISPERSION_DEVICE_ERRORS_IMPROPER_CONFIGURATION">
         <description>Device configuration is not compatible with device limits</description>
       </entry>
-      <entry value="16" name="DISPERSION_DEVICE_ERRORS_OVER_SPEED">
+      <entry value="16" name="DISPERSION_DEVICE_ERRORS_OVERSPEED">
         <description>System is moving faster than the device can deliver</description>
       </entry>
-      <entry value="32" name="DISPERSION_DEVICE_ERRORS_UNDER_SPEED">
+      <entry value="32" name="DISPERSION_DEVICE_ERRORS_UNDERSPEED">
         <description>System is moving slower than the device can support</description>
       </entry>
       <entry value="64" name="DISPERSION_DEVICE_ERRORS_UNEXPECTED_FILL">
@@ -117,25 +118,25 @@
         <description>This command provides the necessary run time information for the dispersion device to support a specific configuration associated with the target dispersion profile.</description>
         <param index="1" label="Dispersion Type" enum="MAV_DISPERSION_TYPE">The type of dispersion this device supports. This indicates target units as outlined in enum</param>
         <param index="2" label="Reference Speed" units="m/s">The target speed for which any target dispersion rate applies, since the rate should change with speed</param>
-        <param index="3" label="Dispersion Rate Min" units="liters/min or kg/min">Minimum dispersion rate the current configuration supports</param>
-        <param index="4" label="Dispersion Rate Max" units="liters/min or kg/min">Maximum dispersion rate the current configuration supports</param>
+        <param index="3" label="Dispersion Rate Min">Minimum dispersion rate the current configuration supports. Units are determined based on the MAV_DISPERSION_TYPE. (liters/min or kg/min)</param>
+        <param index="4" label="Dispersion Rate Max">Maximum dispersion rate the current configuration supports. Units are determined based on the MAV_DISPERSION_TYPE. (liters/min or kg/min)</param>
         <param index="5" label="Pressure Min" units="Pa">If this is a spray dispersion system, minimum pressure the current configuration supports</param>
         <param index="6" label="Pressure Max" units="Pa">If this is a spray dispersion system, maximum pressure the current configuration supports</param>
-        <param index="7" label="Target Fill Level" units="liters or kg">Target payload amount for device. This will be ignored if the capability flags do not indicate fill level detection support</param>
+        <param index="7" label="Target Fill Level">Target payload amount for device. This will be ignored if the capability flags do not indicate fill level measurement is supported. Units are determined based on the MAV_DISPERSION_TYPE. (liters or kg)</param>
       </entry>
       <entry value="30011" name="MAV_CMD_DO_SET_DISPERSION_RATE" hasLocation="false" isDestination="false">
         <description>Command to provide real time adjustment to dispersion device output for a given dispersion profile configured using MAV_CMD_CONFIG_DISPERSION_DEVICE_PARAMS.</description>
-        <param index="1" label="Timestamp Ns" units="ns">The unix timestamp for message creation</param>
+        <param index="1" label="Timestamp Us" units="us">The unix timestamp for message creation in microseconds</param>
         <param index="2" label="Dispersion Type" enum="MAV_DISPERSION_TYPE">The type of dispersion this device supports. This indicates units as outlined in enum</param>
-        <param index="3" label="Target Dispersion Rate" units="liters/min or kg/min">Target dispersion rate for the system</param>
+        <param index="3" label="Target Dispersion Rate">Target dispersion rate for the system. Units are determined based on the MAV_DISPERSION_TYPE. (liters/min or kg/min)</param>
         <param index="4">Empty</param>
         <param index="5">Empty</param>
         <param index="6">Empty</param>
         <param index="7">Empty</param>
       </entry>
       <entry value="30012" name="MAV_CMD_DO_SET_DISPERSION_LOCK" hasLocation="false" isDestination="false">
-        <description>Command for locking/unlocking the device from responding to MAV_CMD_SET_DISPERSION_DEVICE_RATE messages. When locked, the device should stop dispersing.</description>
-        <param index="1" label="Timestamp Ns" units="ns">The unix timestamp for message creation</param>
+        <description>Command for locking/unlocking the device. The lock is intended to serve as an emergency off by preventing the device from responding to MAV_CMD_SET_DISPERSION_DEVICE_RATE messages. When locked, the device should stop dispersing.</description>
+        <param index="1" label="Timestamp Us" units="us">The unix timestamp for message creation in microseconds</param>
         <param index="2" label="Lock">Stop dispersion and prevent the dispersion device from responding to input for live dispersion rate changes until unlocked. 1 for locked. Otherwise unlocked.</param>
         <param index="3">Empty</param>
         <param index="4">Empty</param>
@@ -151,7 +152,7 @@
     <!-- From common.xml -->
     <message id="360" name="DISPERSION_DEVICE_INFORMATION">
         <description>Information about a dispersion device. This message should be requested by a source such as the ground control station using MAV_CMD_REQUEST_MESSAGE. The min/max limits are driven by the underlying hardware. Software defined limits will be a subset of the limits specified here.</description>
-        <field type="uint64_t" name="timestamp_ns" units="ns">Unix time stamp in nanoseconds</field>
+        <field type="uint64_t" name="timestamp_us" units="us">Unix time stamp in microseconds</field>
         <field type="char[32]" name="vendor_name">Name of the payload vendor</field>
         <field type="char[32]" name="model_name">Name of the payload model</field>
         <field type="char[32]" name="custom_name">Custom name given by the user</field>
@@ -161,23 +162,23 @@
         <field type="uint16_t" name="cap_flags" enum="DISPERSION_DEVICE_CAP_FLAGS", display="bitmask">Bitmap of dispersion device capability flags.</field>
         <field type="uint16_t" name="custom_cap_flags" display="bitmask">Bitmap for use for dispersion-specific capability flags. flags.</field>
         <field type="char[64]" name="logger_dir_ftp_url">File transfer protocol (FTP) url-like string pointing to the directory of log files</field>
-        <field type="float" name="dispersion_rate_min" units="liters/min or kg/min">Minimum dispersion rate this device can support</field>
-        <field type="float" name="dispersion_rate_max" units="liters/min or kg/min">Maximum dispersion rate this device can support</field>
-        <field type="uint32_t" name="pressure_min" units="Pa">If this is a spray dispersion system, minimum pressure the hardware supports independent of nozzle configuration</field>
-        <field type="uint32_t" name="pressure_max" units="Pa">If this is a spray dispersion system, maximum pressure the hardware supports independent of nozzle configuration</field>
-        <field type="float" name="max_capacity" units="liters or kg">Maximum fill capacity of this device in Liters for sprayers and Kg for spreaders</field>
+        <field type="float" name="dispersion_rate_min" invalid="NaN">Minimum dispersion rate this device can support. Units are determined based on the DISPERSION_DEVICE_CAP_FLAGS. (liters/min or kg/min)</field>
+        <field type="float" name="dispersion_rate_max" invalid="NaN">Maximum dispersion rate this device can support. Units are determined based on the DISPERSION_DEVICE_CAP_FLAGS. (liters/min or kg/min)</field>
+        <field type="uint32_t" name="pressure_min" units="Pa" invalid="UINT32_MAX">If this is a spray dispersion system, minimum pressure the hardware supports independent of nozzle configuration</field>
+        <field type="uint32_t" name="pressure_max" units="Pa" invalid="UINT32_MAX">If this is a spray dispersion system, maximum pressure the hardware supports independent of nozzle configuration</field>
+        <field type="float" name="max_capacity" invalid="NaN">Maximum fill capacity of this device in Liters for sprayers and Kg for spreaders. Units are determined based on the DISPERSION_DEVICE_CAP_FLAGS. (liters or kg) </field>
     </message>
     <message id="361" name="DISPERSION_DEVICE_STATUS">
       <description>Message reporting the status of a dispersion device. This message should be published at a low regular rate (e.g. 5 Hz) but also during key events such as a mavlink command, flag change, or rapid pressure change.</description>
-      <field type="uint64_t" name="timestamp_ns" units="ns">Unix time stamp in nanoseconds</field>
+      <field type="uint64_t" name="timestamp_us" units="us">Unix time stamp in microseconds</field>
       <field type="uint32_t" name="dispersion_type", enum="MAV_DISPERSION_TYPE">Dispersion type. Defines units for device capacity and dispersion rate</field>
       <field type="uint16_t" name="flags" enum="DISPERSION_DEVICE_STATUS_FLAGS" display="bitmask">Current flags set by the device</field>
       <field type="uint32_t" name="failure_flags" enum="DISPERSION_DEVICE_ERRORS" display="bitmask">Bitmap for failure flags (0 for no failure). Any failure indicates the system has stopped</field>
       <field type="uint32_t" name="warning_flags" enum="DISPERSION_DEVICE_WARNINGS" display="bitmask">Bitmap for warning flags (0 for no warning)</field>
       <field type="uint8_t" name="custom_codes">Leave some flexibility for device manufacturers to pass more information through. This gives up to 255 codes to represent internal system state.</field>
-      <field type="float" name="dispersion_rate" units="liters/min or kg/min">Current dispersion rate of the device. Negative during refill.</field>
-      <field type="uint16_t" name="fill_level" units="liters or kg">Current tank fill level. This field should be ignored if the device capability flags indicate fill level detection is not supported.</field>
-      <field type="uint32_t" name="pressure" units="Pa">Current pressure of the dispersion system if dispersion type indicates it is a sprayer</field>
+      <field type="float" name="dispersion_rate" invalid="NaN">Current dispersion rate of the device. Negative during refill. Units are determined based on the MAV_DISPERSION_TYPE. (liters/min or kg/min)</field>
+      <field type="float" name="fill_level" invalid="NaN">Current tank fill level. This field should be ignored if the device capability flags indicate fill level measurement is not supported. Units are determined based on the MAV_DISPERSION_TYPE. (liters or kg)</field>
+      <field type="uint32_t" name="pressure" units="Pa" invalid="UINT32_MAX">Current pressure of the dispersion system if dispersion type indicates it is a sprayer</field>
     </message>
     <!-- End from common.xml -->
   </messages>
