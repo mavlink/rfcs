@@ -116,11 +116,11 @@ The dispersion type a device is setup for. Dispersion types specify the units fo
 
 (Bitmask) Dispersion device warning flags. Any warning flag indicates an issue that does not block operation of the device.
 
-| Value | Name                                                  | Description                                            |
-| :---- | :---------------------------------------------------- | :----------------------------------------------------- |
-| 1     | DISPERSION_DEVICE_WARNINGS_UNKNOWN                    | Device has had an unknown warning                      |
-| 2     | DISPERSION_DEVICE_WARNINGS_LOG_FULL                   | Device log file has reached its memory limit.          |
-| 4     | DISPERSION_DEVICE_WARNINGS_FILL_LEVEL_DETECTOR_BROKEN | There is an issue with the fill level detector system. |
+| Value | Name                                                 | Description                                             |
+| :---- | :--------------------------------------------------- | :------------------------------------------------------ |
+| 1     | DISPERSION_DEVICE_WARNINGS_UNKNOWN                   | Device has had an unknown warning                       |
+| 2     | DISPERSION_DEVICE_WARNINGS_LOG_FULL                  | Device log file has reached its memory limit.           |
+| 4     | DISPERSION_DEVICE_WARNINGS_FILL_LEVEL_MEASURE_BROKEN | There is an issue with the fill level measuring system. |
 
 # Commands
 

@@ -95,8 +95,8 @@
       <entry value="2" name="DISPERSION_DEVICE_WARNINGS_LOG_FULL">
         <description>Device log file has reached its memory limit.</description>
       </entry>
-      <entry value="4" name="DISPERSION_DEVICE_WARNINGS_FILL_LEVEL_DETECTOR_BROKEN">
-        <description>There is an issue with the fill level detector system.</description>
+      <entry value="4" name="DISPERSION_DEVICE_WARNINGS_FILL_LEVEL_MEASURE_BROKEN">
+        <description>There is an issue with the fill level measuring system.</description>
       </entry>
     </enum>
     <enum name="MAV_DISPERSION_TYPE">
