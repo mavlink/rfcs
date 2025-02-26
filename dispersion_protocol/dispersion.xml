@@ -40,7 +40,7 @@
     </enum>
     <enum name="DISPERSION_DEVICE_STATUS_FLAGS" bitmask="true">
       <description>Flags for the dispersion device (lower level) operation. These flags work together to communicate dispersion device state.</description>
-      <entry value="1" name="DISPERSION_DEVICE_STATUS_FLAGS_DISPERSION_ON">
+      <entry value="1" name="DISPERSION_DEVICE_STATUS_FLAGS_DISPERSION_ACTIVE">
         <description>Dispersion device is delivering payload</description>
       </entry>
       <entry value="2" name="DISPERSION_DEVICE_STATUS_FLAGS_LOCKED">
