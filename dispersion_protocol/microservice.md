@@ -128,11 +128,11 @@ The file structure has the following sections:
 
 File Header (28bytes)
 
-| Field          | Type      | Description                                                   |
-| :------------- | :-------- | :------------------------------------------------------------ |
-| uuid           | uint128_t | A unique identifier for this log file.                        |
-| timestamp_ns   | uint64_t  | Unix timstamp that notes when logging started in nanoseconds. |
-| format_version | uint32_t  | Version number for this file format.                          |
+| Field          | Type      | Description                                                    |
+| :------------- | :-------- | :------------------------------------------------------------- |
+| uuid           | uint128_t | A unique identifier for this log file.                         |
+| timestamp_us   | uint64_t  | Unix timstamp that notes when logging started in microseconds. |
+| format_version | uint32_t  | Version number for this file format.                           |
 
 Mavlink Message Definitions
 
@@ -151,7 +151,7 @@ As many entries as there are room to write can be appended to the file content p
 | Field        | Type     | Description                                                                                                                                                                                                                                                                                   |
 | :----------- | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | type         | int32_t  | This indicates the payload type. All numbers that match an existing MAVLink message id will indicate the payload is a packed mavlink message of that type. -1 indicated bad data. -2 indicates the payload is not mavlink and will be left as bytes. -3 indicate a utf-8 encoded text string. |
-| timestamp_ns | uint64_t | Unix timestamp in nanoseconds for which this corresponding payload was acted upon. NOTE: this is not intended to be time logged!                                                                                                                                                              |
+| timestamp_us | uint64_t | Unix timestamp in microseconds for which this corresponding payload was acted upon. NOTE: this is not intended to be time logged!                                                                                                                                                             |
 | size         | uint16_t | Size of the entry in bytes without the header.                                                                                                                                                                                                                                                |
 | payload      | N/A      | Any bytes content.                                                                                                                                                                                                                                                                            |
 
