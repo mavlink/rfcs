@@ -153,12 +153,6 @@
     <message id="360" name="DISPERSION_DEVICE_INFORMATION">
         <description>Information about a dispersion device. This message should be requested by a source such as the ground control station using MAV_CMD_REQUEST_MESSAGE. The min/max limits are driven by the underlying hardware. Software defined limits will be a subset of the limits specified here.</description>
         <field type="uint64_t" name="timestamp_us" units="us">Unix time stamp in microseconds</field>
-        <field type="char[32]" name="vendor_name">Name of the payload vendor</field>
-        <field type="char[32]" name="model_name">Name of the payload model</field>
-        <field type="char[32]" name="custom_name">Custom name given by the user</field>
-        <field type="uint32_t" name="firmware_version">Version of the payload firmware, encoded as: (Dev & 0xff) << 24</field>
-        <field type="uint32_t" name="hardware_version">Version of the payload hardware, encoded as: (Dev & 0xff) << 24</field>
-        <field type="uint64_t" name="uid">Integer to uniquely identify this hardware. (0 if unknown)</field>
         <field type="uint16_t" name="cap_flags" enum="DISPERSION_DEVICE_CAP_FLAGS", display="bitmask">Bitmap of dispersion device capability flags.</field>
         <field type="uint16_t" name="custom_cap_flags" display="bitmask">Bitmap for use for dispersion-specific capability flags. flags.</field>
         <field type="char[64]" name="logger_dir_ftp_url">File transfer protocol (FTP) url-like string pointing to the directory of log files</field>

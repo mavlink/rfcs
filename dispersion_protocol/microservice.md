@@ -31,7 +31,7 @@ To accomodate the creation of effectiveness and compliance reports for a specifi
 
 ### Discovery of Dispersion Device
 
-The MAVlink nodes that need to communicate with Dispersion Devices start the process by sending a broadcast [MAV_CMD_REQUEST_MESSAGE](https://mavlink.io/en/messages/common.html#MAV_CMD_REQUEST_MESSAGE) for [DISPERSION_DEVICE_INFORMATION](#dispersion_device_information). Every dispersion device should respond with [DISPERSION_DEVICE_INFORMATION](#dispersion_device_information).
+The MAVlink nodes that need to communicate with Dispersion Devices start the process by sending a broadcast [MAV_CMD_REQUEST_MESSAGE](https://mavlink.io/en/messages/common.html#MAV_CMD_REQUEST_MESSAGE) for [COMPONENT_BASIC_INFORMATION](https://mavlink.io/en/messages/common.html#COMPONENT_INFORMATION_BASIC). Every dispersion device should respond with a [COMPONENT_BASIC_INFORMATION](https://mavlink.io/en/messages/common.html#COMPONENT_INFORMATION_BASIC). For more information specific to the dispersion device and its capability, a [MAV_CMD_REQUEST_MESSAGE](https://mavlink.io/en/messages/common.html#MAV_CMD_REQUEST_MESSAGE) for [DISPERSION_DEVICE_INFORMATION](#dispersion-device-information) should be sent. The target dispersion device should respond with [DISPERSION_DEVICE_INFORMATION](#dispersion-device-information).
 
 The MAVLink node should then create as many interface instances as Dispersion Devices found.
 
@@ -71,11 +71,12 @@ This message is a meant as broadcast, so it's sent to all parties on the network
 
 This is the set of messages/enums for communication between a mavlink node and a dispersion device.
 
-| Message                                                                                | Description                                                                                                                                                                                                                                                                                                                                                                                     |
-| :------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [DISPERSION_DEVICE_INFORMATION](#dispersion-device-information)                        | Information about te dispersion device. This message should be requested by some source such as a ground control station using [MAV_CMD_REQUEST_MESSAGE](https://mavlink.io/en/messages/common.html#MAV_CMD_REQUEST_MESSAGE). The min/max limits for dispersion rate and pressure are driven by the underlying hardware. Software defined limits will be a subset of the limits specified here. |
-| [DISPERSION_DEVICE_STATUS](#dispersion-device-status)                                  | Message reporting the status of a dispersion device. This message should be published a low regular rate (e.g. 5 Hz) but also during key events.                                                                                                                                                                                                                                                |
-| [GLOBAL_POSITION_INT](#https://mavlink.io/en/messages/common.html#GLOBAL_POSITION_INT) | Message containing autopilot state relevant for a dispersion device. This message is to be sent from the autopilot to the dispersion device component. The data of this message are for the dispersion device estimator corrections, in particular speed compensation.                                                                                                                          |
+| Message                                                                                               | Description                                                                                                                                                                                                                                                                                                                                                                                     |
+| :---------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [DISPERSION_DEVICE_INFORMATION](#dispersion-device-information)                                       | Information about te dispersion device. This message should be requested by some source such as a ground control station using [MAV_CMD_REQUEST_MESSAGE](https://mavlink.io/en/messages/common.html#MAV_CMD_REQUEST_MESSAGE). The min/max limits for dispersion rate and pressure are driven by the underlying hardware. Software defined limits will be a subset of the limits specified here. |
+| [DISPERSION_DEVICE_STATUS](#dispersion-device-status)                                                 | Message reporting the status of a dispersion device. This message should be published a low regular rate (e.g. 5 Hz) but also during key events.                                                                                                                                                                                                                                                |
+| [GLOBAL_POSITION_INT](#https://mavlink.io/en/messages/common.html#GLOBAL_POSITION_INT)                | Message containing autopilot state relevant for a dispersion device. This message is to be sent from the autopilot to the dispersion device component. The data of this message are for the dispersion device estimator corrections, in particular speed compensation.                                                                                                                          |
+| [COMPONENT_BASIC_INFORMATION](https://mavlink.io/en/messages/common.html#COMPONENT_INFORMATION_BASIC) | Message providing basic information about a MAVLink component. This message is meant to be sent by the dispersion device on request via [MAV_CMD_REQUEST_MESSAGE](https://mavlink.io/en/messages/common.html#MAV_CMD_REQUEST_MESSAGE).                                                                                                                                                          |
 
 | Command                                                                                       | Description                                                                                                                                                                                                                                                        |
 | :-------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -96,13 +97,15 @@ This is the set of messages/enums for communication between a mavlink node and a
 
 ### Additional Microservice Dependencies
 
-The disperison device is targeted to be a stand alone MAVLink device meaning it needs to support some existing MAVLink microservices beyond the dispersion microservice outlines above. The following microservices are required:
+The disperison device is targeted to be a stand alone MAVLink device meaning it needs to support some existing MAVLink microservices beyond the dispersion microservice outlined above. The following microservices are required:
 
 - [Heartbeat/Connection](https://mavlink.io/en/services/heartbeat.html)
 - [Command](https://mavlink.io/en/services/command.html)
 - [File Transfer Protocol](https://mavlink.io/en/services/ftp.html)
 - [Ping](https://mavlink.io/en/services/ping.html)
 - [Time Synchronization](https://mavlink.io/en/services/timesync.html)
+
+NOTE: there is not a microservice definition for this but there is a requirement to support [COMPONENT_INFORMATION_BASIC](https://mavlink.io/en/messages/common.html#COMPONENT_INFORMATION_BASIC)
 
 ### Logging Implementation
 
@@ -198,6 +201,10 @@ The dispersion device should be published a low regular rate (e.g. 5 Hz) but als
 
 > ![IMPORTANT] When publishing the status message in response to key events, it is essential that the status message timestamp aligns with when that event was enacted otherwise leading and falling edge detection during post processing of the data will incorrectly represent the world.
 
+[COMPONENT_BASIC_INFORMATION](https://mavlink.io/en/messages/common.html#COMPONENT_INFORMATION_BASIC)
+
+This information should be published in response to a [MAV_CMD_REQUEST_MESSAGE](https://mavlink.io/en/messages/common.html#MAV_CMD_REQUEST_MESSAGE) on startup.
+
 [DISPERSION_DEVICE_INFORMATION](#dispersion_device_information)
 
 The static information about the dispersion device needs to be sent out when requested using [MAV_CMD_REQUEST_MESSAGE](https://mavlink.io/en/messages/common.html#MAV_CMD_REQUEST_MESSAGE).
@@ -218,7 +225,7 @@ The dispersion device needs to check for commands. See below which commands shou
 
 [MAV_CMD_REQUEST_MESSAGE](https://mavlink.io/en/messages/common.html#MAV_CMD_REQUEST_MESSAGE)
 
-The dispersion device should send out messages when they get requested, e.g. DISPERSION_DEVICE_INFORMATION.
+The dispersion device should send out messages when they get requested, e.g. DISPERSION_DEVICE_INFORMATION, [COMPONENT_BASIC_INFORMATION](https://mavlink.io/en/messages/common.html#COMPONENT_INFORMATION_BASIC).
 
 [MAV_CMD_SET_MESSAGE_INTERVAL](https://mavlink.io/en/messages/common.html#MAV_CMD_SET_MESSAGE_INTERVAL)
 
