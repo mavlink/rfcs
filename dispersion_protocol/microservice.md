@@ -128,34 +128,50 @@ The file structure has the following sections:
 1. Mavlink Definitions
 1. Entries
 
-File Header (28bytes)
+File Header (30 bytes)
 
-| Field          | Type     | Description                                                    |
-| :------------- | :------- | :------------------------------------------------------------- |
-| uuid           | char[16] | A unique identifier for this log file.                         |
-| timestamp_us   | uint64_t | Unix timstamp that notes when logging started in microseconds. |
-| format_version | uint32_t | Version number for this file format.                           |
+| Field          | Type     | Description                                                                                              |
+| :------------- | :------- | :------------------------------------------------------------------------------------------------------- |
+| uuid           | char[16] | A unique identifier for this log file.                                                                   |
+| timestamp_us   | uint64_t | Unix timstamp that notes when logging started in microseconds.                                           |
+| format_version | uint32_t | Version number for this file format.                                                                     |
+| flags          | uint16_t | Set of flags to allow for various format changes. 0 means none of the flags apply. See FLAGS enum below. |
 
-Mavlink Message Definitions
+FLAGS Enum
+
+| Value | Name            | Description                                                     |
+| :---- | :-------------- | :-------------------------------------------------------------- |
+| 1     | MAVLINK_ONLY    | Flag indicating this file only contains packed mavlink content. |
+| 2     | NOT_TIMESTAMPED | Flag indicating each entity has a timestamp                     |
+
+Mavlink Message Definitions (44 bytes without payload)
 
 | Field             | Type     | Description                                                                                                                                               |
 | :---------------- | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | mav_version_major | uint32_t | MAVLink protocol major version.                                                                                                                           |
 | mav_version_minor | uint32_t | MAVLink protocol minor version.                                                                                                                           |
 | mav_dialect       | char[32] | [mavlink message dialect](https://mavlink.io/en/messages/) being used.                                                                                    |
-| size              | uint16_t | Size of the following payload. 0 if definition xml file is not retrievable.                                                                               |
+| size              | uint32_t | Size of the following payload in bytes. 0 if definition xml file is not retrievable.                                                                      |
 | payload           | N/A      | This payload is the utf-8 encoding of the xml file definition for the mavlink messages being used during this logging process. This payload can be empty. |
 
-Entries
+Entries (0-11 bytes without payload)
 
-As many entries as there are room to write can be appended to the file content post mavlink definitions. Each entry should have the following structure.
+As many entries as there are room to write can be appended to the file content post mavlink definitions. Each entry could have up to the following structure. Each field in the following structure is optional as determined by the flags listed above.
 
-| Field        | Type     | Description                                                                                                                                                                                                                                                                                   |
-| :----------- | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| type         | int32_t  | This indicates the payload type. All numbers that match an existing MAVLink message id will indicate the payload is a packed mavlink message of that type. -1 indicated bad data. -2 indicates the payload is not mavlink and will be left as bytes. -3 indicate a utf-8 encoded text string. |
-| timestamp_us | uint64_t | Unix timestamp in microseconds for which this corresponding payload was acted upon. NOTE: this is not intended to be time logged!                                                                                                                                                             |
-| size         | uint16_t | Size of the entry in bytes without the header.                                                                                                                                                                                                                                                |
-| payload      | N/A      | Any bytes content.                                                                                                                                                                                                                                                                            |
+| Field        | Type     | Description                                                                                                                                       |
+| :----------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------ |
+| type         | uint8_t  | This indicates the payload type. See ENTRY_TYPE enum below. This field is NOT present if the MAVLINK_ONLY flag is set.                            |
+| timestamp_us | uint64_t | Unix timestamp in microseconds for which this corresponding payload was acted upon. This field is NOT present if the NOT_TIMESTAMPED flag is set. |
+| size         | uint16_t | Size of the entry in bytes without the header. This field is NOT present if the MAVLINK_ONLY flag is set.                                         |
+| payload      | N/A      | Any bytes content.                                                                                                                                |
+
+ENTRY_TYPE Enum
+
+| Value | Name    | Description                  |
+| :---- | :------ | :--------------------------- |
+| 0     | RAW     | Catch all for raw bytes data |
+| 1     | MAVLINK | Entry is a mavlink message   |
+| 2     | TEXT    | Entry is UTF-8 encoded text  |
 
 ### Messages to Send
 
@@ -179,6 +195,8 @@ Heartbeats should always be sent (usually at 1 Hz).
 [DISPERSION_DEVICE_STATUS](#dispersion_device_status)
 
 The dispersion device should be published a low regular rate (e.g. 5 Hz) but also during key events such as a mavlink command, flag change, or rapid pressure change. The fields like target_system and target_component can be set to 0 (broadcast) by default.
+
+> ![IMPORTANT] When publishing the status message in response to key events, it is essential that the status message timestamp aligns with when that event was enacted otherwise leading and falling edge detection during post processing of the data will incorrectly represent the world.
 
 [DISPERSION_DEVICE_INFORMATION](#dispersion_device_information)
 
