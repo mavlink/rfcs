@@ -49,10 +49,20 @@ A procotol can be very difficult to analyze in isolation so I started by creatin
 [x] spot spraying. This happens at the planning level. This protocol supports setting flow rate at specific locations which is enough for spot spraying.
 [x] communication buses might be lossy so protocol must handle failure detection.
 [x] ability to construct a synchronized timestamp across mavlink nodes to account for latency in commands when generating reports
+[] multiple dispersion devices are connected to the autopilot and need independent control
+[] a single dispersion device has multiple nozzles that require independent nozzle control
+[] the user can adjust droplet size on the ground station during a mission to account for changing wind conditions
+[] a dispersion device could correct flow rate for individual nozzles during turning
+[] a dispersion device can reduce overspray when intersecting an existing not perpendicular spray line by individually turning off one nozzle at a time
+[] protocol supports nozzle count of largest existing sprayer with some additional room for expansion
 
 ### Implementation
 
 After reviewing other submissions, I think I might have gone too far down this path but I wanted something complete to get reviewed by industry relevant people in my network before submitting here to the MAVLink community. I created a messages.md file with the full set of message definitions and a microservice.md file detailing how the protocol should work that is submitted with this PR. I have a couple of versions: one with a manager and one without. I used the one without because it is less complex and conveys the same concept.
+
+Every enum that is not a bitmask uses the zero value as a default UNKNOWN value. This, in my experience, results in more robust systems since it is very common to initialize values to zero in the background. Developers can miss this and if zero is a common valid value, the issue often wont surface until late run time. By having a default value that is useless, systems will almost immediately surface an error.
+
+This protocol should at a minimum support the capability of existing systems and then project into the future a little bit to be a timely, durable, and valuable solution. So, this protocol is designed to support a system with multiple dispersion devices and multiple subcomponents on that device. For the sake of this design, we consider a dispersion device to be a system containing one chemical mix and the infrastructure to deliver that to a field. The dipsersion device must have one gateway compute node that is responsible for communicating over a MAVLink interface. In the most simple form, a disperison device could be a microprocessor, tank, esc, motor, and spreader wheel that needs rate assigned at specific GPS locations but it can take on a more complex form factor for large ground based spray systems. These might have multiple feeder tanks with n number of subcomponents allowing independent control of subcomponent droplet size and flow rate to support many powerful features such as spot spraying and turn compenstation.
 
 ### Questions
 
@@ -77,6 +87,7 @@ After reviewing other submissions, I think I might have gone too far down this p
 
 ## References
 
+- ISOBUS (HSI) Agriculture Comm Standards: https://www.aef-online.org/about-us/activities/high-speed-isobus.html
 - Pix4D Spot Spraying Article: https://www.pix4d.com/blog/variable-rate-application-wheat-field/
 - Aerial Applicator's Manual: https://www.epa.gov/system/files/documents/2023-11/national-aerial-applicator-manual-2014.pdf
 - MAVLink Gimbal Protocol: https://mavlink.io/en/services/gimbal_v2.html
@@ -86,3 +97,10 @@ After reviewing other submissions, I think I might have gone too far down this p
 - Rotor: https://rotor.ai/
 - Guardian Agriculture: https://guardian.ag/
 - PYKA: https://www.flypyka.com/
+- TeeJet Dynajet: https://www.teejet.com/precision-farming/application-control-and-monitoring/dynajet
+- TeeJet Precision Ag Products: https://www.farmco.com/price%20lists/teejet/2024%2009-01%20teejet%20precision%20picture%20price.pdf
+- CPNozzles Accuflow: https://www.cpnozzles.com/products/accu-flo-nozzles/
+
+## TODO
+
+1. um (micron) should be added as an allowed xml unit
