@@ -49,12 +49,12 @@ A procotol can be very difficult to analyze in isolation so I started by creatin
 [x] spot spraying. This happens at the planning level. This protocol supports setting flow rate at specific locations which is enough for spot spraying.
 [x] communication buses might be lossy so protocol must handle failure detection.
 [x] ability to construct a synchronized timestamp across mavlink nodes to account for latency in commands when generating reports
-[] multiple dispersion devices are connected to the autopilot and need independent control
-[] a single dispersion device has multiple nozzles that require independent nozzle control
-[] the user can adjust droplet size on the ground station during a mission to account for changing wind conditions
-[] a dispersion device could correct flow rate for individual nozzles during turning
-[] a dispersion device can reduce overspray when intersecting an existing not perpendicular spray line by individually turning off one nozzle at a time
-[] protocol supports nozzle count of largest existing sprayer with some additional room for expansion
+[x] multiple dispersion devices are connected to the autopilot and need independent control
+[x] a single dispersion device has multiple nozzles that require independent nozzle control
+[x] the user can adjust droplet size on the ground station during a mission to account for changing wind conditions
+[x] a dispersion device could correct flow rate for individual nozzles during turning
+[x] a dispersion device can reduce overspray when intersecting an existing not perpendicular spray line by individually turning off one nozzle at a time
+[x] protocol supports nozzle count of largest existing sprayer with some additional room for expansion
 
 ### Implementation
 
