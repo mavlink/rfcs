@@ -151,11 +151,9 @@ The definition of these parameters is an implementation detail so only a potenti
 
 The dispersion device must be hosting a MAVFTP server to facilite the offloading of generated log data.
 
-The device should be continuously logging every message in full fidelity using a rotating file handler that caps the file size to limit based on underlying compute specifications. There should be an additional limit to the number of files allowed before the oldest file is replaced. Each filename should end with it's count like follows: log.dspf, log.dspf.1, log.dspf.2, etc. It is recommended each file have a unique name by giving the base name a suffix of the created timestamp per the [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339) spec format. So an example file name might look like "dispersion_1996-12-19T16:39:57.112.dspf.12".
+The device should be continuously logging every message in full fidelity to a binary file with the extension .mav using a rotating file handler that caps the file size to limit based on underlying compute specifications. There should be an additional limit to the number of files allowed before the oldest file is replaced. Each filename should end with it's count like follows: log.mav, log.mav.1, log.mav.2, etc. It is recommended each file have a unique name by giving the base name a suffix of the created timestamp per the [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339) spec format. So an example file name might look like "dispersion_1996-12-19T16:39:57.112.mav.12".
 
-There should be an additional abbreviated log file that only logs during key events such as while dispersion is on or there are device errors. A configurable rolling window of messages (ie 30 seconds) should be maintained for before and after key events to additionally be logged. This abbreviated file format should also follow the same rotating habits as the continuous log.
-
-Both of the log files above should follow the format outlined below and use the file extensions ".dspf" and ".dsp" respectively.
+The implementation should support a more efficient logging method option for applications where memory efficiency is incredibly important. Such a logging implementation could store key events at a minimum to provide enough information to construct effective coverage reports.
 
 #### Log File Format
 

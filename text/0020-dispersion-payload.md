@@ -70,20 +70,23 @@ This protocol should at a minimum support the capability of existing systems and
 1. ~~For any kind of effective reporting, not only do the messages needs to be defined but there should also be a degree of standardization on how that information gets logged so utilities can interact with it. Making logging suggestions seemed out of scope here but is there anything I should add to nudge people in the right direction?~~
 1. ~~Is a dispersion manager needed? I genuinely believe the source should not matter. Anything should be able to send a request and it get processed in the order it is received. The only time any prioritization should occur is manual triggers vs automated. No this could be handled through a manager but it is pretty easy implement with just the deivce using the MANUAL vs AUTO request type. I also expect there to be multiple possible viable sources for manual on/off live at any given moment. All should be immediately respected. I feel like the overhead with a manager only allowign two control sources could make this over complicated.~~
 1. Am I missing any critical workflows or test cases? Ie Debug level motor controller and motor information (deemed out of scope, should be a separate protocol for general motor controller and motor information)
-1. should we encourage using something like the parameter protocol rather than a command message for configuration?
+1. ~~should we encourage using something like the parameter protocol rather than a command message for configuration?~~
 
 ### Tentative Decisions
 
-1. the combined protocol makes sense with the addition of an enum indicating type in the relevant messages
+1. this protocol supports the current state of aerial and ground spray systems
+1. the protocol will combine spreader and sprayer into one with the addition of an enum indicating dispersion type in the relevant messages
 1. dispersion payloads will be implemented as standalone MAVLink devices
 1. a logging infrastructure is proposed
 1. a dispersion manager will not be used
-1. eliminate request message in favor of mav command infrastructure
+1. eliminated request message in favor of mav command infrastructure
+1. the parameter protocol will be used for configuration since supporting devices with multiple independent sub components significant increased configuration overhead
+1. unix timestamps will be used where possible to ensure accurate reporting on dispersion quality
 
 ## Alternatives
 
 1. Do nothing. Solutions are already evolving organically. While the problem will be solved, it is subject to the issues documented in the motivation section.
-1. Create documentation on how to use the generic payload messaging infrastructure to accomplish this goal. (I think this will lose a lot of critical information)
+1. Create documentation on how to use the generic payload messaging infrastructure to accomplish this goal. [ArduPilot Crop Sprayer](https://ardupilot.org/copter/docs/sprayer.html)
 
 ## References
 
