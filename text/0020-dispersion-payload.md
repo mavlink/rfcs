@@ -71,6 +71,8 @@ This protocol should at a minimum support the capability of existing systems and
 1. ~~Is a dispersion manager needed? I genuinely believe the source should not matter. Anything should be able to send a request and it get processed in the order it is received. The only time any prioritization should occur is manual triggers vs automated. No this could be handled through a manager but it is pretty easy implement with just the deivce using the MANUAL vs AUTO request type. I also expect there to be multiple possible viable sources for manual on/off live at any given moment. All should be immediately respected. I feel like the overhead with a manager only allowign two control sources could make this over complicated.~~
 1. Am I missing any critical workflows or test cases? Ie Debug level motor controller and motor information (deemed out of scope, should be a separate protocol for general motor controller and motor information)
 1. ~~should we encourage using something like the parameter protocol rather than a command message for configuration?~~
+1. with the device and device component architecture should I switch to manager/device concept
+1. with the device and device component sharing a message definition should I use FUEL_STATUS to handle fill level since it is only relevant to the device and not subcomponents?
 
 ### Tentative Decisions
 
@@ -82,6 +84,7 @@ This protocol should at a minimum support the capability of existing systems and
 1. eliminated request message in favor of mav command infrastructure
 1. the parameter protocol will be used for configuration since supporting devices with multiple independent sub components significant increased configuration overhead
 1. unix timestamps will be used where possible to ensure accurate reporting on dispersion quality
+1. switched status flags and error flags bitmask to continuous enums since almost all of the time the flags would be mutually exclusive. It is worth the size reduction. If multiple codes do happen at the same time, it is common to combine them into a unqiue enum or oscillate between the codes on publish. Warning flags were left as a bit mask since they dont block operation and can be ignored. This makes multiple overlapping warnings likely.
 
 ## Alternatives
 

@@ -42,49 +42,58 @@
         <description>Device supports measuring its own fill level.</description>
       </entry>
     </enum>
-    <enum name="DISPERSION_DEVICE_STATUS_FLAGS" bitmask="true">
-      <description>Flags for the dispersion device (lower level) operation. These flags work together to communicate dispersion device state.</description>
-      <entry value="1" name="DISPERSION_DEVICE_STATUS_FLAGS_DISPERSION_ACTIVE">
-        <description>Dispersion device is delivering payload</description>
+    <enum name="DISPERSION_DEVICE_STATE">
+      <description>Dispersion device states as unique identified codes.</description>
+      <entry value="0" name="DISPERSION_DEVICE_STATE_UNKNOWN">
+        <description>Device state is unknown.</description>
       </entry>
-      <entry value="2" name="DISPERSION_DEVICE_STATUS_FLAGS_LOCKED">
-        <description>Dispersion device is locked and wont respond to control inputs</description>
+      <entry value="1" name="DISPERSION_DEVICE_STATE_READY">
+        <description>Dispersion device is ready for control inputs to deliver payload.</description>
       </entry>
-      <entry value="4" name="DISPERSION_DEVICE_STATUS_FLAGS_CONFIGURED">
-        <description>System has necessary parameters to properly disperse payload</description>
+      <entry value="2" name="DISPERSION_DEVICE_STATE_ACTIVE">
+        <description>Dispersion device is delivering payload.</description>
       </entry>
-      <entry value="8" name="DISPERSION_DEVICE_STATUS_FLAGS_FILL_AT_TARGET">
-        <description>Dispersion device tank is filled to target amount</description>
+      <entry value="3" name="DISPERSION_DEVICE_STATE_LOCKED">
+        <description>Dispersion device is locked and wont respond to control inputs.</description>
+      </entry>
+      <entry value="4" name="DISPERSION_DEVICE_STATE_FATAL_ERROR">
+        <description>Dispersion device has a fatal error that blocks continued use.</description>
+      </entry>
+      <entry value="4" name="DISPERSION_DEVICE_STATE_RESUPPLYING">
+        <description>Dispersion device is being supplied for next mission.</description>
       </entry>
     </enum>
-    <enum name="DISPERSION_DEVICE_ERRORS" bitmask="true">
-      <description>Dispersion device error flags. Any error flag indicates the device has turned off.</description>
+    <enum name="DISPERSION_DEVICE_ERRORS">
+      <description>Dispersion device error codes. An non zero value indicates the device has a fatal error and has turned off.</description>
+      <entry value="0" name="DISPERSION_DEVICE_ERRORS_NO_ERRORS">
+        <description>Device has no errors.</description>
+      </entry>
       <entry value="1" name="DISPERSION_DEVICE_ERRORS_UNKNOWN">
-        <description>Device has had an unknown error</description>
+        <description>Device has had an unknown error.</description>
       </entry>
       <entry value="2" name="DISPERSION_DEVICE_ERRORS_CLOGGED">
-        <description>Device is clogged</description>
+        <description>Device is clogged.</description>
       </entry>
-      <entry value="4" name="DISPERSION_DEVICE_ERRORS_MOTOR_FAILURE">
-        <description>Device dispersion motor or pump has failed</description>
+      <entry value="3" name="DISPERSION_DEVICE_ERRORS_MOTOR_FAILURE">
+        <description>Device dispersion motor or pump has failed.</description>
       </entry>
-      <entry value="8" name="DISPERSION_DEVICE_ERRORS_IMPROPER_CONFIGURATION">
-        <description>Device configuration is not compatible with device limits</description>
+      <entry value="4" name="DISPERSION_DEVICE_ERRORS_IMPROPER_CONFIGURATION">
+        <description>Device configuration is not compatible with device limits.</description>
       </entry>
-      <entry value="16" name="DISPERSION_DEVICE_ERRORS_OVERSPEED">
-        <description>System is moving faster than the device can deliver</description>
+      <entry value="5" name="DISPERSION_DEVICE_ERRORS_OVERSPEED">
+        <description>System is moving faster than the device can deliver.</description>
       </entry>
-      <entry value="32" name="DISPERSION_DEVICE_ERRORS_UNDERSPEED">
-        <description>System is moving slower than the device can support</description>
+      <entry value="6" name="DISPERSION_DEVICE_ERRORS_UNDERSPEED">
+        <description>System is moving slower than the device can support.</description>
       </entry>
-      <entry value="64" name="DISPERSION_DEVICE_ERRORS_UNEXPECTED_FILL">
-        <description>Device tank was filled to an unexpected level</description>
+      <entry value="7" name="DISPERSION_DEVICE_ERRORS_LEAK">
+        <description>Device is not maintaining pressure as expected.</description>
       </entry>
-      <entry value="128" name="DISPERSION_DEVICE_ERRORS_LEAK">
-        <description>Device is not maintaining pressure as expected</description>
+      <entry value="8" name="DISPERSION_DEVICE_ERRORS_UNEXPECTED_VEHICLE_BEHAVIOR">
+        <description>Device detected an unexpected event like a crash.</description>
       </entry>
-      <entry value="256" name="DISPERSION_DEVICE_ERRORS_UNEXPECTED_FLIGHT_BEHAVIOR">
-        <description>Device detected an unexpected event like a crash</description>
+      <entry value="9" name="DISPERSION_DEVICE_ERRORS_FILL_EMPTY">
+        <description>Device ran out of its payload.</description>
       </entry>
     </enum>
     <enum name="DISPERSION_DEVICE_WARNINGS" bitmask="true">
@@ -93,9 +102,15 @@
         <description>Device has had an unknown warning</description>
       </entry>
       <entry value="2" name="DISPERSION_DEVICE_WARNINGS_LOG_FULL">
-        <description>Device log file has reached its memory limit.</description>
+        <description>Device log file has reached its memory limit and is overwritting the oldest files.</description>
       </entry>
-      <entry value="4" name="DISPERSION_DEVICE_WARNINGS_FILL_LEVEL_MEASURE_BROKEN">
+      <entry value="4" name="DISPERSION_DEVICE_WARNINGS_CLAMPED_DROPLET_SIZE">
+        <description>An unsupported droplet size was requested and it was clamped to allowed limits.</description>
+      </entry>
+      <entry value="8" name="DISPERSION_DEVICE_WARNINGS_UNEXPECTED_FILL_LEVEL_MEASUREMENT">
+        <description>Dispersion device was filled to an unexpected level which might impact dispersion.</description>
+      </entry>
+      <entry value="16" name="DISPERSION_DEVICE_WARNINGS_FILL_LEVEL_MEASURE_BROKEN">
         <description>There is an issue with the fill level measuring system.</description>
       </entry>
     </enum>
@@ -160,8 +175,7 @@
         <field type="uint8_t" name="subcomponent_count" invalid="UINT8_MAX">Number of controllable subcomponents this dispersion device has. (ie variable nozzle bodies or boom segment control). 0 or 1 indicates the subcomponent and device are the same.</field>
         <field type="uint16_t" name="cap_flags" enum="DISPERSION_DEVICE_CAP_FLAGS" display="bitmask">Bitmap of dispersion device or subcomponent capability flags.</field>
         <field type="uint16_t" name="custom_cap_flags" display="bitmask">Bitmap for use for dispersion-specific capability flags.</field>
-        <field type="char[64]" name="logger_dir_ftp_url">File transfer protocol (FTP) url-like string pointing to the directory of log files</field>
-        <field type="char[64]" name="prescription_ftp_url">File transfer protocol (FTP) url-like string pointing to the prescription map target location</field>
+        <field type="char[64]" name="workspace_ftp_url">File transfer protocol (FTP) url-like string pointing to the workspace directory for device. You can find the param file, logging files, and prescription files located here. </field>
         <field type="float" name="dispersion_rate_min" invalid="NaN">Minimum dispersion rate this device can support. Units are determined based on the DISPERSION_DEVICE_CAP_FLAGS. (liters/min or kg/min)</field>
         <field type="float" name="dispersion_rate_max" invalid="NaN">Maximum dispersion rate this device can support. Units are determined based on the DISPERSION_DEVICE_CAP_FLAGS. (liters/min or kg/min)</field>
         <field type="uint32_t" name="pressure_min" units="Pa" invalid="UINT32_MAX">If this is a spray dispersion system, minimum pressure the hardware supports independent of nozzle configuration</field>
@@ -172,17 +186,17 @@
     </message>
     <message id="361" name="DISPERSION_DEVICE_STATUS">
       <description>Message reporting the status of a dispersion device. This message should be published at a low regular rate (e.g. 5 Hz) but also during key events such as a mavlink command, flag change, or rapid pressure change.</description>
-      <field type="uint64_t" name="timestamp_us" units="us">Unix time stamp in microseconds</field>
+      <field type="uint64_t" name="timestamp_us" units="us">Unix time stamp in microseconds.</field>
       <field type="uint8_t" name="subcomponent_id">Subcomponent id (ie nozzle) this message is associated with, 0 represents the entire device. Send status multiple times for multiple subcomponents.</field>
-      <field type="uint8_t" name="dispersion_type" enum="MAV_DISPERSION_TYPE">Dispersion type. Defines units for device capacity and dispersion rate</field>
-      <field type="uint16_t" name="flags" enum="DISPERSION_DEVICE_STATUS_FLAGS" display="bitmask">Current flags set by the device</field>
-      <field type="uint32_t" name="failure_flags" enum="DISPERSION_DEVICE_ERRORS" display="bitmask">Failure flags (0 for no failure). Any failure indicates the system has stopped</field>
-      <field type="uint32_t" name="warning_flags" enum="DISPERSION_DEVICE_WARNINGS" display="bitmask">Warning flags (0 for no warning)</field>
+      <field type="uint8_t" name="dispersion_type" enum="MAV_DISPERSION_TYPE">Dispersion type. Defines units for device capacity and dispersion rate.</field>
+      <field type="uint8_t" name="state" enum="DISPERSION_DEVICE_STATE">Code representing current device state.</field>
+      <field type="uint8_t" name="error_code" enum="DISPERSION_DEVICE_ERRORS">An error code indicating what specific fatal error has occurred to halt the device from functioning.</field>
+      <field type="uint16_t" name="warning_flags" enum="DISPERSION_DEVICE_WARNINGS" display="bitmask">Warning flags (0 for no warning).</field>
       <field type="uint8_t" name="custom_codes">Leave some flexibility for device manufacturers to pass more information through. This gives up to 255 codes to represent internal system state.</field>
       <field type="float" name="fill_level" invalid="NaN">Current device tank fill level. This field should be ignored if the device capability flags indicate fill level measurement is not supported. Units are determined based on the MAV_DISPERSION_TYPE. (liters or kg)</field>
       <field type="float" name="dispersion_rate" invalid="NaN">Current dispersion rate of the device. Negative during refill. Units are determined based on the MAV_DISPERSION_TYPE. (liters/min or kg/min)</field>
-      <field type="uint32_t" name="pressure" units="Pa" invalid="UINT32_MAX">Current pressure of the dispersion system if dispersion type indicates it is a sprayer</field>
-      <field type="uint16_t" name="droplet_diameter" units="um" invalid="0">Current droplet size if dispersion_type is MAV_DISPERSION_TYPE_SPRAY_VARIABLE_SIZE</field>
+      <field type="uint32_t" name="pressure" units="Pa" invalid="UINT32_MAX">Current pressure of the dispersion system if dispersion type indicates it is a sprayer.</field>
+      <field type="uint16_t" name="droplet_diameter" units="um" invalid="0">Current droplet size if dispersion_type is MAV_DISPERSION_TYPE_SPRAY_VARIABLE_SIZE.</field>
     </message>
     <!-- End from common.xml -->
   </messages>

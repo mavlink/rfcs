@@ -7,12 +7,11 @@ Information about a dispersion device. This message should be requested by a sou
 | Field Name           | Type       |        Units         | Values                                                      | Description                                                                                                                                                                      |
 | :------------------- | :--------- | :------------------: | :---------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | timestamp_us         | `uint64_t` |          us          |                                                             | Unix time stamp in microseconds                                                                                                                                                  |
-| subcomponent_id      | `uint8_t`  |                      |                                                             | Subcomponent id (ie nozzle) this message is associated with, 0 represents the entire device. Send infromation multiple times for multiple subcomponents.                         |
+| subcomponent_id      | `uint8_t`  |                      |                                                             | Subcomponent id (ie nozzle) this message is associated with, 0 represents the entire device. Send information multiple times for multiple subcomponents.                         |
 | subcomponent_count   | `uint8_t`  |                      | invalid:UINT8_MAX                                           | Number of controllable subcomponents this dispersion device has. (ie variable nozzle bodies or boom segment control). 0 or 1 indicates the subcomponent and device are the same. |
 | cap_flags            | `uint16_t` |                      | [DISPERSION_DEVICE_CAP_FLAGS](#dispersion_device_cap_flags) | Bitmap of dispersion device or subcomponent capability flags.                                                                                                                    |
 | custom_cap_flags     | `uint16_t` |                      |                                                             | Bitmap for use for dispersion-specific capability flags.                                                                                                                         |
-| logger_dir_ftp_url   | `char[64]` |                      |                                                             | File transfer protocol (FTP) url-like string pointing to the directory of log files                                                                                              |
-| prescription_ftp_url | `char[64]` |                      |                                                             | File transfer protocol (FTP) url-like string pointing to the prescription map target location                                                                                    |
+| workspace_ftp_url    | `char[64]` |                      |                                                             | File transfer protocol (FTP) url-like string pointing to the workspace directory for device. You can find the param file, logging files, and prescription files located here.    |
 | dispersion_rate_min  | `float`    | liters/min or kg/min | invalid:NaN                                                 | Minimum dispersion rate this device can support. Units are determined based on the DISPERSION_DEVICE_CAP_FLAGS. (liters/min or kg/min)                                           |
 | dispersion_rate_max  | `float`    | liters/min or kg/min | invalid:NaN                                                 | Maximum dispersion rate this device can support. Units are determined based on the DISPERSION_DEVICE_CAP_FLAGS. (liters/min or kg/min)                                           |
 | capacity_max         | `float`    |     liters or kg     | invalid:NaN                                                 | Maximum fill capacity of this device in Liters for sprayers and Kg for spreaders. Units are determined based on the DISPERSION_DEVICE_CAP_FLAGS. (liters or kg)                  |
@@ -25,21 +24,21 @@ Information about a dispersion device. This message should be requested by a sou
 
 Message reporting the status of a dispersion device and its subcomponents.
 
-This message should be published a low regular rate (e.g. 5 Hz) but also during key events such as a mavlink command, flag change, or rapid pressure change. If a message creation is in response to a key event, the timestamp field should note when the key event occurred and not when the message was created. For all other status messages, the timestamp should just be when the message gets created.
+This message should be published at a low regular rate (e.g. 5 Hz) but also during key events such as a mavlink command, flag change, or rapid pressure change. If a message creation is in response to a key event, the timestamp field should note when the key event occurred and not when the message was created. For all other status messages, the timestamp should just be when the message gets created.
 
-| Field Name       | Type       |        Units         | Values                                                            | Description                                                                                                                                                                                                         |
-| :--------------- | :--------- | :------------------: | :---------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| timestamp_us     | `uint64_t` |          us          |                                                                   | Unix time stamp in microseconds                                                                                                                                                                                     |
-| subcomponent_id  | `uint8_t`  |                      |                                                                   | Subcomponent id (ie nozzle) this message is associated with, 0 represents the entire device. Send status multiple times for multiple subcomponents.                                                                 |
-| dispersion_type  | `uint8_t`  |                      | [MAV_DISPERSION_TYPE](#mav_dispersion_type)                       | Dispersion type. Defines units for device capacity and dispersion rate                                                                                                                                              |
-| flags            | `uint16_t` |                      | [DISPERSION_DEVICE_STATUS_FLAGS](#dispersion_device_status_flags) | Current flags set by the device                                                                                                                                                                                     |
-| failure_flags    | `uint32_t` |                      | [DISPERSION_DEVICE_ERRORS](#dispersion_device_errors)             | Failure flags (0 for no failure). Any failure indicates the system has stopped                                                                                                                                      |
-| warning_flags    | `uint32_t` |                      | [DISPERSION_DEVICE_WARNINGS](#dispersion_device_warnings)         | Warning flags (0 for no warning)                                                                                                                                                                                    |
-| custom_codes     | `uint8_t`  |                      |                                                                   | Leave some flexibility for device manufacturers to pass more information through. This gives up to 255 codes to represent internal system state.                                                                    |
-| fill_level       | `float`    |     liters or kg     | invalid:NaN                                                       | Current device tank fill level. This field should be ignored if the device capability flags indicate fill level measurement is not supported. Units are determined based on the MAV_DISPERSION_TYPE. (liters or kg) |
-| dispersion_rate  | `float`    | liters/min or kg/min | invalid:NaN                                                       | Current dispersion rate of the device. Negative during refill. Units are determined based on the MAV_DISPERSION_TYPE. (liters/min or kg/min)                                                                        |
-| pressure         | `uint32_t` |          Pa          | invalid:UINT32_MAX                                                | Current pressure of the dispersion system if dispersion type indicates it is a sprayer                                                                                                                              |
-| droplet_diameter | `uint16_t` |     um (microns)     | invalid: 0                                                        | Current droplet size if dispersion_type is MAV_DISPERSION_TYPE_SPRAY_VARIABLE_SIZE                                                                                                                                  |
+| Field Name       | Type       |        Units         | Values                                                    | Description                                                                                                                                                                                                         |
+| :--------------- | :--------- | :------------------: | :-------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| timestamp_us     | `uint64_t` |          us          |                                                           | Unix time stamp in microseconds                                                                                                                                                                                     |
+| subcomponent_id  | `uint8_t`  |                      |                                                           | Subcomponent id (ie nozzle) this message is associated with, 0 represents the entire device. Send status multiple times for multiple subcomponents.                                                                 |
+| dispersion_type  | `uint8_t`  |                      | [MAV_DISPERSION_TYPE](#mav_dispersion_type)               | Dispersion type. Defines units for device capacity and dispersion rate                                                                                                                                              |
+| state            | `uint8_t`  |                      | [DISPERSION_DEVICE_STATE](#dispersion_device_state)       | Code representing current device state                                                                                                                                                                              |
+| error_code       | `uint8_t`  |                      | [DISPERSION_DEVICE_ERRORS](#dispersion_device_errors)     | An error code indicating what specific fatal error has occurred to halt the device from functioning                                                                                                                 |
+| warning_flags    | `uint16_t` |                      | [DISPERSION_DEVICE_WARNINGS](#dispersion_device_warnings) | Warning flags (0 for no warning)                                                                                                                                                                                    |
+| custom_codes     | `uint8_t`  |                      |                                                           | Leave some flexibility for device manufacturers to pass more information through. This gives up to 255 codes to represent internal system state.                                                                    |
+| fill_level       | `float`    |     liters or kg     | invalid:NaN                                               | Current device tank fill level. This field should be ignored if the device capability flags indicate fill level measurement is not supported. Units are determined based on the MAV_DISPERSION_TYPE. (liters or kg) |
+| dispersion_rate  | `float`    | liters/min or kg/min | invalid:NaN                                               | Current dispersion rate of the device. Negative during refill. Units are determined based on the MAV_DISPERSION_TYPE. (liters/min or kg/min)                                                                        |
+| pressure         | `uint32_t` |          Pa          | invalid:UINT32_MAX                                        | Current pressure of the dispersion system if dispersion type indicates it is a sprayer                                                                                                                              |
+| droplet_diameter | `uint16_t` |     um (microns)     | invalid: 0                                                | Current droplet size if dispersion_type is MAV_DISPERSION_TYPE_SPRAY_VARIABLE_SIZE                                                                                                                                  |
 
 # Enumerated Types
 
@@ -97,42 +96,47 @@ The reference frame for dispersion device command values.
 | 8     | DISPERSION_DEVICE_CAP_FLAGS_DYNAMIC_SPEED_CORRECTIONS | Device supports varying dispersion rate with speed changes up to provided limits. |
 | 16    | DISPERSION_DEVICE_CAP_FILL_LEVEL_MEASURE              | Device supports measuring its own fill level.                                     |
 
-## DISPERSION_DEVICE_STATUS_FLAGS
+## DISPERSION_DEVICE_STATE
 
-(Bitmask) Flags for the dispersion device (lower level) operation. These flags work together to communicate dispersion device state.
+Dispersion device states as unique identified codes.
 
-| Value | Name                                             | Description                                                    |
-| :---- | :----------------------------------------------- | :------------------------------------------------------------- |
-| 1     | DISPERSION_DEVICE_STATUS_FLAGS_DISPERSION_ACTIVE | Dispersion device is delivering payload                        |
-| 2     | DISPERSION_DEVICE_STATUS_FLAGS_LOCKED            | Dispersion device is locked and wont respond to control inputs |
-| 4     | DISPERSION_DEVICE_STATUS_FLAGS_CONFIGURED        | System has necessary parameters to properly disperse payload   |
-| 8     | DISPERSION_DEVICE_STATUS_FLAGS_FILL_AT_TARGET    | Dispersion device tank is filled to target amount              |
+| Value | Name                                | Description                                             |
+| :---- | :---------------------------------- | :------------------------------------------------------ |
+| 0     | DISPERSION_DEVICE_STATE_UNKNOWN     | Device state is unknown.                                |
+| 1     | DISPERSION_DEVICE_STATE_READY       | Dispersion device is ready for control inputs.          |
+| 2     | DISPERSION_DEVICE_STATE_ACTIVE      | Dispersion device is delivering payload.                |
+| 3     | DISPERSION_DEVICE_STATE_LOCKED      | Dispersion device is locked and wont respond to inputs. |
+| 4     | DISPERSION_DEVICE_STATE_FATAL_ERROR | Dispersion device has a fatal error blocking operation. |
+| 5     | DISPERSION_DEVICE_STATE_RESUPPLYING | Dispersion device is being supplied for next mission.   |
 
 ## DISPERSION_DEVICE_ERRORS
 
-(Bitmask) Dispersion device error flags. Any error flag indicates the device has turned off.
+Dispersion device error codes. A non-zero value indicates the device has a fatal error and has turned off.
 
-| Value | Name                                                | Description                                         |
-| :---- | :-------------------------------------------------- | :-------------------------------------------------- |
-| 1     | DISPERSION_DEVICE_ERRORS_UNKNOWN                    | Device has had an unknown error                     |
-| 2     | DISPERSION_DEVICE_ERRORS_CLOGGED                    | Device is clogged                                   |
-| 4     | DISPERSION_DEVICE_ERRORS_MOTOR_FAILURE              | Device dispersion motor or pump has failed          |
-| 8     | DISPERSION_DEVICE_ERRORS_IMPROPER_CONFIGURATION     | Device configuration is not viable                  |
-| 16    | DISPERSION_DEVICE_ERRORS_OVERSPEED                  | System is moving faster than the device can deliver |
-| 32    | DISPERSION_DEVICE_ERRORS_UNDERSPEED                 | System is moving slower than the device can support |
-| 64    | DISPERSION_DEVICE_ERRORS_UNEXPECTED_FILL            | Device tank was filled to an unexpected level       |
-| 128   | DISPERSION_DEVICE_ERRORS_LEAK                       | Device is not maintaining pressure as expected      |
-| 256   | DISPERSION_DEVICE_ERRORS_UNEXPECTED_FLIGHT_BEHAVIOR | Device detected an unexpected event like a crash    |
+| Value | Name                                                 | Description                                          |
+| :---- | :--------------------------------------------------- | :--------------------------------------------------- |
+| 0     | DISPERSION_DEVICE_ERRORS_NO_ERRORS                   | Device has no errors.                                |
+| 1     | DISPERSION_DEVICE_ERRORS_UNKNOWN                     | Device has had an unknown error.                     |
+| 2     | DISPERSION_DEVICE_ERRORS_CLOGGED                     | Device is clogged.                                   |
+| 3     | DISPERSION_DEVICE_ERRORS_MOTOR_FAILURE               | Device dispersion motor or pump has failed.          |
+| 4     | DISPERSION_DEVICE_ERRORS_IMPROPER_CONFIGURATION      | Device configuration is not compatible with limits.  |
+| 5     | DISPERSION_DEVICE_ERRORS_OVERSPEED                   | System is moving faster than the device can deliver. |
+| 6     | DISPERSION_DEVICE_ERRORS_UNDERSPEED                  | System is moving slower than the device can support. |
+| 7     | DISPERSION_DEVICE_ERRORS_LEAK                        | Device is not maintaining pressure as expected.      |
+| 8     | DISPERSION_DEVICE_ERRORS_UNEXPECTED_VEHICLE_BEHAVIOR | Device detected an unexpected event like a crash.    |
+| 9     | DISPERSION_DEVICE_ERRORS_FILL_EMPTY                  | Device ran out of its payload.                       |
 
 ## DISPERSION_DEVICE_WARNINGS
 
 (Bitmask) Dispersion device warning flags. Any warning flag indicates an issue that does not block operation of the device.
 
-| Value | Name                                                 | Description                                             |
-| :---- | :--------------------------------------------------- | :------------------------------------------------------ |
-| 1     | DISPERSION_DEVICE_WARNINGS_UNKNOWN                   | Device has had an unknown warning                       |
-| 2     | DISPERSION_DEVICE_WARNINGS_LOG_FULL                  | Device log file has reached its memory limit.           |
-| 4     | DISPERSION_DEVICE_WARNINGS_FILL_LEVEL_MEASURE_BROKEN | There is an issue with the fill level measuring system. |
+| Value | Name                                                         | Description                                             |
+| :---- | :----------------------------------------------------------- | :------------------------------------------------------ |
+| 1     | DISPERSION_DEVICE_WARNINGS_UNKNOWN                           | Device has had an unknown warning                       |
+| 2     | DISPERSION_DEVICE_WARNINGS_LOG_FULL                          | Device log file has reached its memory limit.           |
+| 4     | DISPERSION_DEVICE_WARNINGS_CLAMPED_DROPLET_SIZE              | An unsupported droplet size was requested and clamped.  |
+| 8     | DISPERSION_DEVICE_WARNINGS_UNEXPECTED_FILL_LEVEL_MEASUREMENT | Dispersion device was filled to an unexpected level.    |
+| 16    | DISPERSION_DEVICE_WARNINGS_FILL_LEVEL_MEASURE_BROKEN         | There is an issue with the fill level measuring system. |
 
 # Commands
 
