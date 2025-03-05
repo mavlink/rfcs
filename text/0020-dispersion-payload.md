@@ -58,6 +58,8 @@ A procotol can be very difficult to analyze in isolation so I started by creatin
 
 ### Implementation
 
+The target XML content can be found in [this public pull request](https://github.com/flocked-agriculture/mavlink/pull/1).
+
 After reviewing other submissions, I think I might have gone too far down this path but I wanted something complete to get reviewed by industry relevant people in my network before submitting here to the MAVLink community. I created a messages.md file with the full set of message definitions and a microservice.md file detailing how the protocol should work that is submitted with this PR. I have a couple of versions: one with a manager and one without. I used the one without because it is less complex and conveys the same concept.
 
 Every enum that is not a bitmask uses the zero value as a default UNKNOWN value. This, in my experience, results in more robust systems since it is very common to initialize values to zero in the background. Developers can miss this and if zero is a common valid value, the issue often wont surface until late run time. By having a default value that is useless, systems will almost immediately surface an error.
