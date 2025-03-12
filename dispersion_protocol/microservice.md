@@ -173,66 +173,13 @@ The definition of these parameters is an implementation detail so only a potenti
 
 The dispersion device must be hosting a MAVFTP server to facilitate the offloading of generated log data.
 
-The device should be continuously logging every message in full fidelity to a binary file with the extension .mav using a rotating file handler that caps the file size to limit based on underlying compute specifications. There should be an additional limit to the number of files allowed before the oldest file is replaced. Each filename should end with its count like follows: log.mav, log.mav.1, log.mav.2, etc. It is recommended each file have a unique name by giving the base name a suffix of the created timestamp per the [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339) spec format. So an example file name might look like "dispersion_1996-12-19T16:39:57.112.mav.12".
+The device should be continuously logging every message in full fidelity to a binary file with the extension as documented in the file format section below using a rotating file handler that caps the file size to limit based on underlying compute specifications. There should be an additional limit to the number of files allowed before the oldest file is replaced. Each filename should end with its count like follows: log.bin, log.bin.1, log.bin.2, etc. It is recommended each file have a unique name by giving the base name a suffix of the created timestamp per the [RFC 3339](https://datatracker.ietf.org/doc/html/rfc3339) spec format. So an example file name might look like "dispersion_1996-12-19T16:39:57.112.bin.12".
 
-The implementation should support a more efficient logging method option for applications where memory efficiency is incredibly important. Such a logging implementation could store key events at a minimum to provide enough information to construct effective coverage reports.
+The implementation should support a more efficient logging method option for applications where memory efficiency is incredibly important. Such a logging implementation could store key events at a minimum to provide enough information to construct effective coverage reports while dropping regularly published data that has no meaningful events.
 
 #### Log File Format
 
-This log file should be a binary file with a maximum size limit dictated by the underlying device compute system. On log file creation, the file header as specified below should be written. After the header is the mavlink message definitions. The mavlink message definitions are to be written in the format of a single entry as noted below by writing the entire XML file representation as an entry payload. After the header, any number of entries can be added. This file can contain any data. Each entry into the file will have a header and payload.
-
-It is expected that endianness match the mavlink spec for [pack format](https://mavlink.io/en/guide/serialization.html#packet_format) (little-endian).
-
-The file structure has the following sections:
-
-1. Header
-1. Mavlink Definitions
-1. Entries
-
-File Header (30 bytes)
-
-| Field          | Type     | Description                                                                                              |
-| :------------- | :------- | :------------------------------------------------------------------------------------------------------- |
-| uuid           | char[16] | A unique identifier for this log file.                                                                   |
-| timestamp_us   | uint64_t | Unix timestamp that notes when logging started in microseconds.                                          |
-| format_version | uint32_t | Version number for this file format.                                                                     |
-| flags          | uint16_t | Set of flags to allow for various format changes. 0 means none of the flags apply. See FLAGS enum below. |
-
-FLAGS Enum
-
-| Value | Name            | Description                                                     |
-| :---- | :-------------- | :-------------------------------------------------------------- |
-| 1     | MAVLINK_ONLY    | Flag indicating this file only contains packed mavlink content. |
-| 2     | NOT_TIMESTAMPED | Flag indicating each entity has a timestamp                     |
-
-Mavlink Message Definitions (44 bytes without payload)
-
-| Field             | Type     | Description                                                                                                                                               |
-| :---------------- | :------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| mav_version_major | uint32_t | MAVLink protocol major version.                                                                                                                           |
-| mav_version_minor | uint32_t | MAVLink protocol minor version.                                                                                                                           |
-| mav_dialect       | char[32] | [mavlink message dialect](https://mavlink.io/en/messages/) being used.                                                                                    |
-| size              | uint32_t | Size of the following payload in bytes. 0 if definition xml file is not retrievable.                                                                      |
-| payload           | N/A      | This payload is the utf-8 encoding of the xml file definition for the mavlink messages being used during this logging process. This payload can be empty. |
-
-Entries (0-11 bytes without payload)
-
-As many entries as there are room to write can be appended to the file content post mavlink definitions. Each entry could have up to the following structure. Each field in the following structure is optional as determined by the flags listed above.
-
-| Field        | Type     | Description                                                                                                                                       |
-| :----------- | :------- | :------------------------------------------------------------------------------------------------------------------------------------------------ |
-| type         | uint8_t  | This indicates the payload type. See ENTRY_TYPE enum below. This field is NOT present if the MAVLINK_ONLY flag is set.                            |
-| timestamp_us | uint64_t | Unix timestamp in microseconds for which this corresponding payload was acted upon. This field is NOT present if the NOT_TIMESTAMPED flag is set. |
-| size         | uint16_t | Size of the entry in bytes without the header. This field is NOT present if the MAVLINK_ONLY flag is set.                                         |
-| payload      | N/A      | Any bytes content.                                                                                                                                |
-
-ENTRY_TYPE Enum
-
-| Value | Name    | Description                  |
-| :---- | :------ | :--------------------------- |
-| 0     | RAW     | Catch all for raw bytes data |
-| 1     | MAVLINK | Entry is a mavlink message   |
-| 2     | TEXT    | Entry is UTF-8 encoded text  |
+[Target File Format Spec](https://github.com/flocked-agriculture/mavlink_utils/wiki/Mavlink-Logger#file-format)
 
 ### Messages to Send
 
