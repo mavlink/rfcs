@@ -27,11 +27,33 @@ There are a few ways to interact with the dispersion device that can be categori
 - status - custom MAVLink messages are used to report the device state at a scheduled interval or on key events
 - logging - all dispersion related mavlink messages are logged and that data can be managed via the [File Transfer Protocol](https://mavlink.io/en/services/ftp.html).
 
-### Recommended Hardware Set-up
+### Hardware Set-ups
 
-This protocol is designed to work best with a standalone MAVLink dispersion device that shares a high throughput, low latency communication bus with its controller. While any MAVLink source can be used to control the device, a common configuration is to have an autopilot providing critical real time vehicle position and trajectory data and a user interface to manage locking or low frequency control and configuration.
+The protocol can be used with either standalone MAVLink dispersion devices, or devices that are directly connected to autopilot I/O. The two approaches are described below.
+
+> **NOTE**
+> This protocol is designed to work best with a standalone MAVLink dispersion device that shares a high throughput, low latency communication bus with its controller. While any MAVLink source can be used to control the device, a common configuration is to have an autopilot providing critical real time vehicle position and trajectory data and a user interface to manage locking or low frequency control and configuration.
+
+#### MAVLink Dispersion Device
+
+The protocol can be used to support independent MAVLink dispersion devices.
+
+The device will need to have the same system ID as the autopilot and should use one of the dispersion device component IDs (these need to be configurable for support of multiple dispersion devices on one system).
+
+Commonly the device is connected to the autopilot via a (relatively high speed) local serial link. The autopilot must forward commands from a ground station and telemetry from the device. When executing missions, the autopilot will need to re-emit mission items as command protocol commands when connected to a MAVLink dispersion device. These should be addressed to the targeted device.
+
+It is also common to connect the dispersion device, autopilot, and ground station to a common communication bus in such a way the autopilot does not have to relay messages to and from the dispersion device. For example all devices could communicate MAVLink via a shared LAN or have a bridge into that LAN. In this situation, all messages going to and from the dispersion device can be put on this shared communication bus and assume the relevant subscriber will be able to access it. The autopilot will still need to provide the necessary vehicle telemetry and, when relevant to a mission, the necessary mission items as command protocol commands.
+
+> **NOTE**
+> This is why commands used in missions need a target dispersion component id - otherwise you can't send to a particular dispersion device from a mission
 
 ![standalone dispersion device connected to an autopilot and gcs mavlink node](hardware_config.png)
+
+#### Autopilot-connected Dispersion Device
+
+Dispersion devices that don't support a MAVLink interface may still be controllable via autopilot I/0 (via some other protocol/custom driver). For these devices the autopilot can act as a dispersion device with respect to ground stations and other external MAVLink systems. In this case the autopilot should emit COMPONENT_BASIC_INFORMATION, DISPERSION_DEVICE_INFORMATION, DISPERSION_DEVICE_STATUS and respond to commands MAV_CMD_DO_SET_DISPERSION_TARGETS and MAV_CMD_SET_DISPERSION_LOCK from a ground station. Instead of forwarding commands from a GCS or mission items during a mission, it will execute them on the connected dispersion hardware (ie PWM controlled dispersion motor) via the autopilot driver. It is expected that an autopilot driver will likely have to provide invalid values for things like droplet size limits, pressure limits, and tank capacity in their messages. As long as the associated dispersion type fields and capability flags are consistent with what functionality is not supported, this is valid. To help with discovery, it is expected that COMPONENT_BASIC_INFORMATION is supported with reasonable defaults (ie vendor_name="Dispersion Driver", model_name"Default") to indicate this dispersion device is really just a collection of relevant hardware controlled by the autopilot rather than a stand alone manufactured device.
+
+![autopilot connected dispersion device](autopilot_connected_hardware_config.png)
 
 ### Hardware Configuration
 
