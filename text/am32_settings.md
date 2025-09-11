@@ -18,7 +18,9 @@ Changing the settings on your AM32 ESC is an integral part of configuring your d
 **Current Requirements/Limitations:**
 1. FC has a USB port. You must connect the USB port to a host PC.
 2. FC FW supports ESC Passthrough
-3. Must have internet to use AM32 Configurator
+3. FW must go into Passthrough mode on USB and ESC must reset to the bootloader to communicate.
+4. ESC must reset between bootloader/app mode and pass rearm conditions
+5. Must have internet to use AM32 Configurator
 
 ---
 
