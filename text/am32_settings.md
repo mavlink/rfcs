@@ -15,7 +15,7 @@ Changing the settings on your AM32 ESC is an integral part of configuring your d
 3. The FC firmware does not support ESC Passthrough (PX4)
 4. The user is in the field and cannot access https://am32.ca/configurator
 
-**Requirements**
+**Current Requirements/Limitations:**
 1. FC has a USB port. You must connect the USB port to a host PC.
 2. FC FW supports ESC Passthrough
 3. Must have internet to use AM32 Configurator
@@ -80,6 +80,7 @@ Send each read setting as a single generic mavlink message. Write each setting u
     </enum>
     <message id="292" name="ESC_SETTING">
       <description>The read ESC setting value from the ESC</description>
+      <field type="uint8_t" name="index">Index of the ESC (0 = ESC1, 1 = ESC2, etc.).</field>
       <field type="uint8_t" name="esc" enum="ESC_TYPE_ENUM">ESC Type</field>
       <field type="uint8_t" name="setting" enum="ESC_SETTING_ENUM">ESC Setting</field>
       <field type="uint8_t" name="value">Value to write</field>
@@ -139,7 +140,7 @@ In all cases we need to be able to request the reading of AM32 Settings
 
 **Cons**
 - FC needs to carry the `setting --> address` mapping
-- FC needs to perfom the conversion of the value from real to uint8 format and vice versa
+- FC needs to perform the conversion of the value from real to uint8 format and vice versa
 - FC needs to sanitize the value before writing (min/max/increment)
 - FC needs to know when the start/stop of settings writes happens. Both four-way and dshot programming protocols require atomic updates.
 - **OR** Settings are updated individually (no-save model). The change of a single setting (drag slider and release) will trigger the atomic write/save/read.
@@ -149,10 +150,10 @@ In all cases we need to be able to request the reading of AM32 Settings
 
 #### Option 3: Leverage existing Parameter protocol
 **Pros**
-- Leverage exisiting read/write mechanisms in FC FW and GCS.
+- Leverage existing read/write mechanisms in FC FW and GCS.
 
 **Cons**
 - parameters are typically associated with "mavlink systems" and the ESC is not a mavlink system
-- if associated with sysid 1 (FC) and compid N it would require each ESC to have a mavlink componenet ID -- the ESC is not a mavlink component
+- if associated with sysid 1 (FC) and compid N it would require each ESC to have a mavlink component ID -- the ESC is not a mavlink component
 - if a FW supported 8 ESCs max this introduces 39 x 8 new parameters (flash usage gets bigger, param file gets bigger)
 - opens the can of worms of the FC "owning the ESC params". In other words, a user might want to have the FC check the settings and write them if they don't match the configured parameters.
