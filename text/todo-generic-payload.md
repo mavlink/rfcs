@@ -225,103 +225,103 @@ Error flags for a generic payload. This is a bitmask enumeration.
 
 #### GENERIC_PAYLOAD_DESCRIPTION (Message ID: 59999)
 
-Message broadcasted at a low rate (nominally < 1 Hz or on request) to announce the payload's presence and capabilities.
+Message broadcasted at a low rate (nominally < 1 Hz or on request) to announce the payload's presence and capabilities. This message must be broadcasted at some non-zero rate to indicate the payload's existence and to allow the vehicle to discover the Generic Payload Protocol.
 
-| Field Name             | Type        | Description                                                          |
-| ---------------------- | ----------- | -------------------------------------------------------------------- |
-| payload_id             | uint8_t     | Component ID of the generic payload.                                 |
-| num_functions          | uint16_t    | Number of functions this payload provides.                           |
-| num_telemetry_channels | uint16_t    | Number of telemetry channels this payload provides.                  |
-| name                   | char[32]    | Name of the generic payload for UI display (NULL-terminated string). |
-| mass                   | uint16_t    | Mass of the payload in grams. 0 if not available.                    |
-| torque_arm             | uint16_t[3] | Torque arm in Payload Frame (mm)                                     |
+| Field Name             | Type        | Min | Description                                                                                                       |
+| ---------------------- | ----------- | --- | ----------------------------------------------------------------------------------------------------------------- |
+| payload_id             | uint8_t     | 1   | Component ID of the generic payload.                                                                              |
+| num_functions          | uint16_t    | 0   | Number of functions this payload provides.                                                                        |
+| num_telemetry_channels | uint16_t    | 0   | Number of telemetry channels this payload provides.                                                               |
+| name                   | char[32]    |     | Name of the generic payload for UI display (NULL-terminated string).                                              |
+| mass                   | uint16_t    |     | Mass of the payload in grams. 0 if not available.                                                                 |
+| torque_arm             | uint16_t[3] |     | Vector3 describing the CoM offset from the vehicle's payload frame CoM (mm). Optional, 0s indicate not specified. |
 
 #### GENERIC_PAYLOAD_STATUS (Message ID: 60000)
 
 Status for a generic payload. This should be broadcast at a low rate (nominally 1 Hz) to announce the payload's presence and capabilities.
 
-| Field Name             | Type     | Description                                                                          |
-| ---------------------- | -------- | ------------------------------------------------------------------------------------ |
-| payload_id             | uint8_t  | Component ID of the generic payload.                                                 |
-| uptime_ms              | uint32_t | Time since payload boot (in milliseconds).                                           |
-| error_flags            | uint32_t | Current error flags (bitmask). See GENERIC_PAYLOAD_ERROR_FLAGS.                      |
-| custom_error_flags     | uint32_t | Bitmap for custom error flags specific to this payload type.                         |
-| power_draw             | uint16_t | Power consumption of the payload in mW. 0 if not available.                          |
-| temperature            | uint16_t | Temperature of the payload (0.01 °C per unit, 0 = 0°C). UINT16_MAX if not available. |
+| Field Name             | Type     | Min | Description                                                                          |
+| ---------------------- | -------- | --- | ------------------------------------------------------------------------------------ |
+| payload_id             | uint8_t  | 1   | Component ID of the generic payload.                                                 |
+| uptime_ms              | uint32_t | 0   | Time since payload boot (in milliseconds).                                           |
+| error_flags            | uint32_t | 0   | Current error flags (bitmask). See GENERIC_PAYLOAD_ERROR_FLAGS.                      |
+| custom_error_flags     | uint32_t | 0   | Bitmap for custom error flags specific to this payload type.                         |
+| power_draw             | uint16_t | 0   | Power consumption of the payload in mW. UINT16_MAX if not available.                 |
+| temperature            | uint16_t | 0   | Temperature of the payload (0.01 °C per unit, 0 = 0°C). UINT16_MAX if not available. |
 
 
 #### GENERIC_PAYLOAD_FUNCTION_DESCRIPTION (Message ID: 60001)
 
-Generic payload function description, sent on request with MAV_CMD_REQUEST_MESSAGE or MAV_CMD_SET_MESSAGE_INTERVAL, with param2 set to payload_id, and param3 set to function index.
+Generic payload function description, sent on request with MAV_CMD_REQUEST_MESSAGE or MAV_CMD_SET_MESSAGE_INTERVAL, with param2 set to payload_id. Param 3 can be set to 0 to trigger emission of the message for all functions, or a function index to get information for that function.
 
-| Field Name    | Type       | Description                                                                      |
-| ------------- | ---------- | -------------------------------------------------------------------------------- |
-| payload_id    | uint8_t    | Component ID of the generic payload.                                 |
-| index         | uint16_t   | Index of this function on the generic payload.                                   |
-| type          | uint8_t    | Type of function. See GENERIC_PAYLOAD_FUNCTION_TYPE.                             |
-| value_type    | uint8_t    | Data type for value/min/max fields. See GENERIC_PAYLOAD_VALUE_TYPE.              |
-| enabled       | uint8_t    | 0: Disabled, 1: Enabled                                                          |
-| min_low       | uint8_t[4] | Lower 32 bits of minimum value (for CONTINUOUS/DISCRETE types). Little-endian.   |
-| max_low       | uint8_t[4] | Lower 32 bits of maximum value (for CONTINUOUS/DISCRETE types). Little-endian.   |
-| control_modes | uint16_t   | Bitmask of supported control modes. See GENERIC_PAYLOAD_CONTROL_MODE_FLAGS.      |
-| timeout_ms    | uint32_t   | Timeout in milliseconds for MOMENTARY mode. 0 means use default timeout (100ms). |
-| name          | char[32]   | Name of the function for UI display. NULL-terminated string.                     |
-| units         | char[16]   | Units for the value field (optional). NULL-terminated string.                    |
-| min_high      | uint8_t[4] | Upper 32 bits of minimum value. Only used for 64-bit types. Little-endian        |
-| max_high      | uint8_t[4] | Upper 32 bits of maximum value. Only used for 64-bit types. Little-endian        |
+| Field Name    | Type       | Min | Description                                                                      |
+| ------------- | ---------- | --- | -------------------------------------------------------------------------------- |
+| payload_id    | uint8_t    | 1   | Component ID of the generic payload.                                             |
+| index         | uint16_t   | 1   | Index of this function on the generic payload.                                   |
+| type          | uint8_t    | 0   | Type of function. See GENERIC_PAYLOAD_FUNCTION_TYPE.                             |
+| value_type    | uint8_t    | 0   | Data type for value/min/max fields. See GENERIC_PAYLOAD_VALUE_TYPE.              |
+| enabled       | uint8_t    | 0   | 0: Disabled, 1: Enabled                                                          |
+| min_low       | uint8_t[4] | 0   | Lower 32 bits of minimum value. Little-endian.                                   |
+| max_low       | uint8_t[4] | 0   | Lower 32 bits of maximum value. Little-endian.                                   |
+| control_modes | uint16_t   | 0   | Bitmask of supported control modes. See GENERIC_PAYLOAD_CONTROL_MODE_FLAGS.      |
+| timeout_ms    | uint32_t   | 0   | Timeout in milliseconds for MOMENTARY mode. 0 means use default timeout (100ms). |
+| name          | char[32]   |     | Name of the function for UI display. NULL-terminated string.                     |
+| units         | char[16]   |     | Units for the value field (optional). NULL-terminated string.                    |
+| min_high      | uint8_t[4] | 0   | Upper 32 bits of minimum value. Only used for 64-bit types. Little-endian        |
+| max_high      | uint8_t[4] | 0   | Upper 32 bits of maximum value. Only used for 64-bit types. Little-endian        |
 
 #### GENERIC_PAYLOAD_FUNCTION_STATUS (Message ID: 60001)
 
 Generic payload function status.
 
-| Field Name    | Type       | Description                                                                                     |
-| ------------- | ---------- | ----------------------------------------------------------------------------------------------- |
-| payload_id    | uint8_t    | Component ID of the generic payload.                                                            |
-| index         | uint16_t   | Index of this function on the generic payload.                                                  |
-| value_low     | uint8_t[4] | Lower 32 bits of current value. For 32-bit types, this is the entire value. Little-endian.      |
-| value_high    | uint8_t[4] | Upper 32 bits of current value. Only used for 64-bit types. Little-endian.                      |
+| Field Name    | Type       | Min | Description                                                                                     |
+| ------------- | ---------- | --- | ----------------------------------------------------------------------------------------------- |
+| payload_id    | uint8_t    | 1   | Component ID of the generic payload.                                                            |
+| index         | uint16_t   | 1   | Index of this function on the generic payload.                                                  |
+| value_low     | uint8_t[4] | 0   | Lower 32 bits of current value. For 32-bit types, this is the entire value. Little-endian.      |
+| value_high    | uint8_t[4] | 0   | Upper 32 bits of current value. Only used for 64-bit types. Little-endian.                      |
 
 #### GENERIC_PAYLOAD_FUNCTION_CONTROL (Message ID: 60002)
 
 Command to control a generic payload function.
 
-| Field Name   | Type       | Description                                                                                |
-| ------------ | ---------- | ------------------------------------------------------------------------------------------ |
-| payload_id   | uint8_t    | Component ID of the generic payload.                                                       |
-| index        | uint16_t   | Index of this function on the generic payload.                                             |
-| control_mode | uint8_t    | Desired Control Mode. See GENERIC_PAYLOAD_CONTROL_MODE.                                    |
-| enable       | uint8_t    | 0: Disable, 1: Enable                                                                      |
-| value_low    | uint8_t[4] | Lower 32 bits of value to set. For 32-bit types, this is the entire value. Little-endian.  |
-| timeout_ms   | uint32_t   | Timeout for momentary operation if control_mode is GENERIC_PAYLOAD_CONTROL_MODE_MOMENTARY. |
-| value_high   | uint8_t[4] | Upper 32 bits of value to set. Only used for 64-bit types. Little-endian.                  |
+| Field Name   | Type       | Min | Description                                                                                |
+| ------------ | ---------- | --- | ------------------------------------------------------------------------------------------ |
+| payload_id   | uint8_t    | 1   | Component ID of the generic payload.                                                       |
+| index        | uint16_t   | 1   | Index of this function on the generic payload.                                             |
+| control_mode | uint8_t    | 0   | Desired Control Mode. See GENERIC_PAYLOAD_CONTROL_MODE.                                    |
+| enable       | uint8_t    | 0   | 0: Disable, 1: Enable                                                                      |
+| value_low    | uint8_t[4] | 0   | Lower 32 bits of value to set. For 32-bit types, this is the entire value. Little-endian.  |
+| timeout_ms   | uint32_t   | 0   | Timeout for momentary operation if control_mode is GENERIC_PAYLOAD_CONTROL_MODE_MOMENTARY. |
+| value_high   | uint8_t[4] | 0   | Upper 32 bits of value to set. Only used for 64-bit types. Little-endian.                  |
 
 #### GENERIC_PAYLOAD_TELEMETRY_DESCRIPTION (Message ID: 60003)
 
 Generic payload telemetry channel description, sent on request with MAV_CMD_REQUEST_MESSAGE or MAV_CMD_SET_MESSAGE_INTERVAL, with param2 set to payload_id, and param3 set to function index.
 
-| Field Name  | Type       | Description                                                                 |
-| ----------- | ---------- | --------------------------------------------------------------------------- |
-| payload_id  | uint8_t    | Component ID of the generic payload.                                        |
-| index       | uint16_t   | Index of this telemetry channel on the generic payload.                     |
-| value_type  | uint8_t    | Data type for value/min/max fields. See GENERIC_PAYLOAD_VALUE_TYPE.         |
-| update_rate | uint8_t    | Rate at which the value is updated (in Hz). 0 if unknown.                   |
-| min_low     | uint8_t[4] | Lower 32 bits of minimum value. Used for scaling/display. Little-endian.    |
-| max_low     | uint8_t[4] | Lower 32 bits of maximum value. Used for scaling/display. Little-endian.    |
-| name        | char[32]   | Name of the telemetry channel for UI display. NULL-terminated string.       |
-| units       | char[16]   | Units for the value field (optional). NULL-terminated string.               |
-| min_high    | uint8_t[4] | Upper 32 bits of minimum value. Only used for 64-bit types. Little-endian.  |
-| max_high    | uint8_t[4] | Upper 32 bits of maximum value. Only used for 64-bit types. Little-endian.  | 
+| Field Name  | Type       | Min | Description                                                                 |
+| ----------- | ---------- | --- | --------------------------------------------------------------------------- |
+| payload_id  | uint8_t    | 1   | Component ID of the generic payload.                                        |
+| index       | uint16_t   | 1   | Index of this telemetry channel on the generic payload.                     |
+| value_type  | uint8_t    | 0   | Data type for value/min/max fields. See GENERIC_PAYLOAD_VALUE_TYPE.         |
+| update_rate | uint8_t    | 0   | Rate at which the value is updated (in Hz). 0 if unknown.                   |
+| min_low     | uint8_t[4] | 0   | Lower 32 bits of minimum value. Used for scaling/display. Little-endian.    |
+| max_low     | uint8_t[4] | 0   | Lower 32 bits of maximum value. Used for scaling/display. Little-endian.    |
+| name        | char[32]   |     | Name of the telemetry channel for UI display. NULL-terminated string.       |
+| units       | char[16]   |     | Units for the value field (optional). NULL-terminated string.               |
+| min_high    | uint8_t[4] | 0   | Upper 32 bits of minimum value. Only used for 64-bit types. Little-endian.  |
+| max_high    | uint8_t[4] | 0   | Upper 32 bits of maximum value. Only used for 64-bit types. Little-endian.  | 
 
 #### GENERIC_PAYLOAD_TELEMETRY_DATA (Message ID: 60004)
 
 Lightweight telemetry data message for streaming single values.
 
-| Field Name | Type       | Description                                                                                |
-| ---------- | ---------- | ------------------------------------------------------------------------------------------ |
-| payload_id | uint8_t    | Component ID of the generic payload.                                                       |
-| index      | uint16_t   | Index of this telemetry channel on the generic payload.                                    |
-| value_low  | uint8_t[4] | Lower 32 bits of current value. For 32-bit types, this is the entire value. Little-endian. |
-| value_high | uint8_t[4] | Upper 32 bits of current value. Only used for 64-bit types. Little-endian.                 |
+| Field Name | Type       | Min | Description                                                                                |
+| ---------- | ---------- | --- | ------------------------------------------------------------------------------------------ |
+| payload_id | uint8_t    | 1   | Component ID of the generic payload.                                                       |
+| index      | uint16_t   | 1   | Index of this telemetry channel on the generic payload.                                    |
+| value_low  | uint8_t[4] | 0   | Lower 32 bits of current value. For 32-bit types, this is the entire value. Little-endian. |
+| value_high | uint8_t[4] | 0   | Upper 32 bits of current value. Only used for 64-bit types. Little-endian.                 |
 
 ## Illuminator Replacement Example
 
@@ -402,7 +402,7 @@ Off:
 
 - index = 1
 - type = GENERIC_PAYLOAD_FUNCTION_TYPE_BITMASK
-- value_type = GENERIC_PAYLOAD_VALUE_TYPE_BITMASK8
+- value_type = GENERIC_PAYLOAD_VALUE_TYPE_BITMASK_8
 - enabled = 1
 - min_low = 0
 - max_low = 2
