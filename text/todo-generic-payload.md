@@ -80,6 +80,7 @@ The protocol consists of three main components:
 - `GENERIC_PAYLOAD_FUNCTION_DESCRIPTION` (TBD): Function metadata description
 - `GENERIC_PAYLOAD_FUNCTION_STATUS` (TBD): Function state reporting
 - `GENERIC_PAYLOAD_FUNCTION_CONTROL` (TBD): Function command interface
+- `MAV_CMD_GENERIC_PAYLOAD_FUNCTION` (TBD): Command-based function control for missions
 - `GENERIC_PAYLOAD_TELEMETRY_DESCRIPTION` (TBD): Telemetry channel metadata
 - `GENERIC_PAYLOAD_TELEMETRY_DATA` (TBD): High-rate telemetry streaming
 
@@ -298,6 +299,20 @@ Command to control a generic payload function.
 | value_low    | uint8_t[4] | 0   | Lower 32 bits of value to set. For 32-bit types, this is the entire value. Little-endian.  |
 | timeout_ms   | uint32_t   | 0   | Timeout for momentary operation if control_mode is GENERIC_PAYLOAD_CONTROL_MODE_MOMENTARY. |
 | value_high   | uint8_t[4] | 0   | Upper 32 bits of value to set. Only used for 64-bit types. Little-endian.                  |
+
+#### MAV_CMD_GENERIC_PAYLOAD_FUNCTION (Command ID: TBD)
+
+Command to control a generic payload function. This command provides an alternative interface to the `GENERIC_PAYLOAD_FUNCTION_CONTROL` message for mission planning and command-based control.
+
+| Param | Label        | Units | Values                            | Description                                                                                         |
+| ----- | ------------ | ----- | --------------------------------- | --------------------------------------------------------------------------------------------------- |
+| 1     | Payload ID   |       | min: 1, max: 255                  | Component ID of the generic payload. Used in missions only.                                         |
+| 2     | Index        |       | min: 1                            | Index of this function on the generic payload.                                                      |
+| 3     | Control Mode |       | GENERIC_PAYLOAD_CONTROL_MODE      | Desired Control Mode.                                                                               |
+| 4     | Enable       |       | 0: Disable, 1: Enable             | Enable or disable the function.                                                                     |
+| 5     | Value Low    |       |                                   | Lower 32 bits of value to set. For 32-bit types, this is the entire value. Little-endian.          |
+| 6     | Value High   |       |                                   | Upper 32 bits of value to set. Only used for 64-bit types. Little-endian.                          |
+| 7     | Timeout      | ms    | min: 0                            | Timeout for momentary operation if control_mode is GENERIC_PAYLOAD_CONTROL_MODE_MOMENTARY.         |
 
 #### GENERIC_PAYLOAD_TELEMETRY_DESCRIPTION (Message ID: TBD)
 
