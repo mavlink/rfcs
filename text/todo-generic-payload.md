@@ -75,11 +75,13 @@ The protocol consists of three main components:
 
 #### Core Messages:
 
-- `GENERIC_PAYLOAD_STATUS` (60000): Discovery and status broadcast
-- `GENERIC_PAYLOAD_FUNCTION_STATUS` (60001): Function metadata and state
-- `GENERIC_PAYLOAD_FUNCTION_CONTROL` (60002): Function command interface
-- `GENERIC_PAYLOAD_TELEMETRY_STATUS` (60003): Telemetry channel metadata
-- `GENERIC_PAYLOAD_TELEMETRY_DATA` (60004): High-rate telemetry streaming
+- `GENERIC_PAYLOAD_DESCRIPTION` (TBD): Payload presence and capability announcement
+- `GENERIC_PAYLOAD_STATUS` (TBD): Discovery and status broadcast
+- `GENERIC_PAYLOAD_FUNCTION_DESCRIPTION` (TBD): Function metadata description
+- `GENERIC_PAYLOAD_FUNCTION_STATUS` (TBD): Function state reporting
+- `GENERIC_PAYLOAD_FUNCTION_CONTROL` (TBD): Function command interface
+- `GENERIC_PAYLOAD_TELEMETRY_DESCRIPTION` (TBD): Telemetry channel metadata
+- `GENERIC_PAYLOAD_TELEMETRY_DATA` (TBD): High-rate telemetry streaming
 
 #### Key Features:
 
@@ -121,7 +123,7 @@ Support for 6 data types covering most payload needs:
 
 ### Message ID Allocation
 
-Proposed message IDs in the 60000-60004 range (vendor-specific range) to avoid conflicts during development. Final standardization would require official MAVLink message ID allocation.
+Message IDs are TBD and will be allocated during the standardization process. Final standardization will require official MAVLink message ID allocation.
 
 ### Extension Fields
 
@@ -160,7 +162,7 @@ All messages include extension fields for future enhancements:
 - Error flags provide diagnostic information
 - Timeout mechanisms prevent stuck states
 
-## Appendix: Complete Message Definitions
+## Appendix A: Complete Message Definitions
 
 ### Enumerations
 
@@ -223,7 +225,7 @@ Error flags for a generic payload. This is a bitmask enumeration.
 
 ### Messages
 
-#### GENERIC_PAYLOAD_DESCRIPTION (Message ID: 59999)
+#### GENERIC_PAYLOAD_DESCRIPTION (Message ID: TBD)
 
 Message broadcasted at a low rate (nominally < 1 Hz or on request) to announce the payload's presence and capabilities. This message must be broadcasted at some non-zero rate to indicate the payload's existence and to allow the vehicle to discover the Generic Payload Protocol.
 
@@ -235,8 +237,10 @@ Message broadcasted at a low rate (nominally < 1 Hz or on request) to announce t
 | name                   | char[32]    |     | Name of the generic payload for UI display (NULL-terminated string).                                              |
 | mass                   | uint16_t    |     | Mass of the payload in grams. 0 if not available.                                                                 |
 | torque_arm             | uint16_t[3] |     | Vector3 describing the CoM offset from the vehicle's payload frame CoM (mm). Optional, 0s indicate not specified. |
+| metadata_crc           | uint32_t    |     | CRC32 checksum of the metadata file. 0 if metadata_uri is not used.                                               |
+| metadata_uri           | char[100]   |     | URI to component metadata file (NULL-terminated string). All zeros if not used.                                   |
 
-#### GENERIC_PAYLOAD_STATUS (Message ID: 60000)
+#### GENERIC_PAYLOAD_STATUS (Message ID: TBD)
 
 Status for a generic payload. This should be broadcast at a low rate (nominally 1 Hz) to announce the payload's presence and capabilities.
 
@@ -250,7 +254,7 @@ Status for a generic payload. This should be broadcast at a low rate (nominally 
 | temperature            | uint16_t | 0   | Temperature of the payload (0.01 °C per unit, 0 = 0°C). UINT16_MAX if not available. |
 
 
-#### GENERIC_PAYLOAD_FUNCTION_DESCRIPTION (Message ID: 60001)
+#### GENERIC_PAYLOAD_FUNCTION_DESCRIPTION (Message ID: TBD)
 
 Generic payload function description, sent on request with MAV_CMD_REQUEST_MESSAGE or MAV_CMD_SET_MESSAGE_INTERVAL, with param2 set to payload_id. Param 3 can be set to 0 to trigger emission of the message for all functions, or a function index to get information for that function.
 
@@ -270,7 +274,7 @@ Generic payload function description, sent on request with MAV_CMD_REQUEST_MESSA
 | min_high      | uint8_t[4] | 0   | Upper 32 bits of minimum value. Only used for 64-bit types. Little-endian        |
 | max_high      | uint8_t[4] | 0   | Upper 32 bits of maximum value. Only used for 64-bit types. Little-endian        |
 
-#### GENERIC_PAYLOAD_FUNCTION_STATUS (Message ID: 60001)
+#### GENERIC_PAYLOAD_FUNCTION_STATUS (Message ID: TBD)
 
 Generic payload function status.
 
@@ -281,7 +285,7 @@ Generic payload function status.
 | value_low     | uint8_t[4] | 0   | Lower 32 bits of current value. For 32-bit types, this is the entire value. Little-endian.      |
 | value_high    | uint8_t[4] | 0   | Upper 32 bits of current value. Only used for 64-bit types. Little-endian.                      |
 
-#### GENERIC_PAYLOAD_FUNCTION_CONTROL (Message ID: 60002)
+#### GENERIC_PAYLOAD_FUNCTION_CONTROL (Message ID: TBD)
 
 Command to control a generic payload function.
 
@@ -295,7 +299,7 @@ Command to control a generic payload function.
 | timeout_ms   | uint32_t   | 0   | Timeout for momentary operation if control_mode is GENERIC_PAYLOAD_CONTROL_MODE_MOMENTARY. |
 | value_high   | uint8_t[4] | 0   | Upper 32 bits of value to set. Only used for 64-bit types. Little-endian.                  |
 
-#### GENERIC_PAYLOAD_TELEMETRY_DESCRIPTION (Message ID: 60003)
+#### GENERIC_PAYLOAD_TELEMETRY_DESCRIPTION (Message ID: TBD)
 
 Generic payload telemetry channel description, sent on request with MAV_CMD_REQUEST_MESSAGE or MAV_CMD_SET_MESSAGE_INTERVAL, with param2 set to payload_id, and param3 set to function index.
 
@@ -312,7 +316,7 @@ Generic payload telemetry channel description, sent on request with MAV_CMD_REQU
 | min_high    | uint8_t[4] | 0   | Upper 32 bits of minimum value. Only used for 64-bit types. Little-endian.  |
 | max_high    | uint8_t[4] | 0   | Upper 32 bits of maximum value. Only used for 64-bit types. Little-endian.  | 
 
-#### GENERIC_PAYLOAD_TELEMETRY_DATA (Message ID: 60004)
+#### GENERIC_PAYLOAD_TELEMETRY_DATA (Message ID: TBD)
 
 Lightweight telemetry data message for streaming single values.
 
@@ -323,7 +327,7 @@ Lightweight telemetry data message for streaming single values.
 | value_low  | uint8_t[4] | 0   | Lower 32 bits of current value. For 32-bit types, this is the entire value. Little-endian. |
 | value_high | uint8_t[4] | 0   | Upper 32 bits of current value. Only used for 64-bit types. Little-endian.                 |
 
-## Illuminator Replacement Example
+## Appendix B: Illuminator Replacement Example
 
 The following is an example of how an existing protocol, the Illuminator protocol, can be replaced with the Generic Payload protocol. It does incur a small amount of additional overhead, but the benefits of the Generic Payload protocol are worth it to allow for more flexible and extensible payloads.
 
@@ -493,7 +497,6 @@ Strobe Period set to 2s:
 
 **GENERIC_PAYLOAD_FUNCTION_DESCRIPTION**
 
-- index = 4
 - type = GENERIC_PAYLOAD_FUNCTION_TYPE_CONTINUOUS
 - value_type = GENERIC_PAYLOAD_VALUE_TYPE_REAL32
 - enabled = 1
@@ -520,20 +523,11 @@ Strobe Duty Cycle set to 75%:
 - enable = 1
 - value_low = union(uint32_t, float f = 75.0) -> f
 
-## References
-
-- [MAVLink Message Definition Standard](https://mavlink.io/en/guide/define_xml_element.html)
-- [MAVLink Common Message Set](https://mavlink.io/en/messages/common.html)
-- [Existing Payload Interfaces in MAVLink](https://mavlink.io/en/messages/common.html#camera-protocol)
-- [MAVLink Extension Fields](https://mavlink.io/en/guide/message_definitions.html#extension_fields)
-- [MAVLink Message Rate Control](https://mavlink.io/en/messages/common.html#MAV_CMD_SET_MESSAGE_INTERVAL)
-
-## Alternatives Considered
+## Appendix C: Alternatives Considered
 
 ### Alternative 1: Extend Existing Payload Commands
 
 Build upon the current [MAVLink payload services](https://mavlink.io/en/services/payload.html) by adding more generic commands and standardizing implementation.
-
 **Analysis**: The existing `MAV_CMD_DO_SET_ACTUATOR` and `MAV_CMD_DO_SET_SERVO` commands could theoretically be extended with additional parameters for type information and metadata.
 
 **Key Limitations**:
@@ -581,3 +575,11 @@ Build upon the [MAVLink Component Information Service](https://mavlink.io/en/ser
 3. **Performance Limits**: What are reasonable limits for number of functions/telemetry channels per payload?
 4. **Rate Control**: How should high-rate telemetry interact with existing MAVLink rate limiting mechanisms?
 5. **Error Recovery**: Should we define standard error recovery procedures for failed commands?
+
+## References
+
+- [MAVLink Message Definition Standard](https://mavlink.io/en/guide/define_xml_element.html)
+- [MAVLink Common Message Set](https://mavlink.io/en/messages/common.html)
+- [Existing Payload Interfaces in MAVLink](https://mavlink.io/en/messages/common.html#camera-protocol)
+- [MAVLink Extension Fields](https://mavlink.io/en/guide/message_definitions.html#extension_fields)
+- [MAVLink Message Rate Control](https://mavlink.io/en/messages/common.html#MAV_CMD_SET_MESSAGE_INTERVAL)
