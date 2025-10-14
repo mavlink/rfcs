@@ -8,7 +8,7 @@ Allow polygon and circle fences to include minimum and maximum altitude in a spe
 
 # Motivation
 
-With new (as at 2025) regulations coming into force for BVLOS flying requiring Detect and Avoid capabilites, drones must be capable of flying within regulated airspaces
+With new (as at 2025) regulations coming into force for BVLOS flying in Canada, requiring Detect and Avoid capabilites, drones must be capable of flying within regulated airspaces
 which are typically specified as horizontal limits with altitude boundaries, and avoiding known fixed obstacles such as cell towers, buidlings or electrical power lines,
 which have a limited specific height.
 
