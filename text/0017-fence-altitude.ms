@@ -12,6 +12,8 @@ With new (as at 2025) regulations coming into force for BVLOS flying requiring D
 which are typically specified as horizontal limits with altitude boundaries, and avoiding known fixed obstacles such as cell towers, buidlings or electrical power lines,
 which have a limited specific height.
 
+The regulations refere to Transport Canada Standard 922, and in particular 922-008 Containment, which can be found here https://tc.canada.ca/en/corporate-services/acts-regulations/list-regulations/canadian-aviation-regulations-sor-96-433/standards/standard-922-rpas-safety-assurance
+
 # Detailed Design
 
 Existing messages for fence items will use existing unused parameters for minimum and maximum altitude and a single parameter for example:
