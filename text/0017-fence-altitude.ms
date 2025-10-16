@@ -17,7 +17,8 @@ The regulations refere to [Transport Canada Standard 922](https://tc.canada.ca/e
 
 # Detailed Design
 
-Existing messages for fence items will use existing unused parameters for minimum and maximum altitude and a single parameter for example:
+Existing messages for fence items will use existing unused parameters for minimum and maximum altitude and a single parameter for the frame.
+For example:
 
 MAV_CMD_NAV_FENCE_POLYGON_VERTEX_INCLUSION (5001)
 
