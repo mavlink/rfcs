@@ -37,3 +37,20 @@ Create a new fence item type that records minimum altitude and maximum altitude 
 fence to be matched with "altitude limit" fence items. This would be challenging for GCS to implement.
 
 Add new values to fence items to allow for another frame type value to be added, to allow for a minimum fence to have a different frame (e.g. AGL) from the maximum altitude frame which might be AMSL.
+
+## Separate altitude setting command
+
+Use another command that allows the altitudes for the previous fence point to be set each fence, which might look like this: `MAV_CMD_NAV_FENCE_ALTITUDE`:
+
+Param (Label) | Description | Values
+--- | --- | ---
+1 (Max Altitude) | Maximum altitude for the fence. Frame defined by MISSION_ITEM_INT.frame | NaN for "infinite" (or max=min=0)
+2 (Min Altitude) | Minimum altitude for the fence. | NaN for "does not apply" (all the way to the ground). Frame according to MISSION_ITEM_INT.frame by default and param3 if defined. | 
+3 (Frame) | The MAV_FRAME to use for Min Altitude (param3) if the default is not used | MAV_FRAME_GLOBAL is default frame. | 
+
+The main advantage of such an approach is that it more safe. 
+- If altitudes are not understood on a fence definition a flight stack **should** reject the fence plan.
+- With the current proposal an older flight stack will likely accept the command with altitude, but not act on it. This will be non-compliant, and potentially dangerous.
+
+The main disadvantage is that the the altitudes are separated from the point definition, and hence the FC must process multiple points to know how the fence behaves, and as a reader it is not so easy to work out what each point does.
+
