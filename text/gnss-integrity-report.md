@@ -80,14 +80,14 @@ Updated `GNSS_INTEGRITY` message:
 | Field | In previous `GNSS_INTEGRITY` | Septentrio source | u-blox source |
 |-------|--------------------------|------------------|---------------|
 | `system_errors` | Yes | `ReceiverStatus.RxError` + `ExtError` | `UBX-MON-RF.antStatus` indirectly |
-| `antenna_state` | No (only antenna error bit) | `RxError.ANTENNA` (no SHORT/OPEN distinction, only reports overcurrent conditions) | `UBX-MON-RF.antStatus` (per band, then only the first block is read + no overcurrent reporting) |
-| `antenna_power` | No | `ReceiverStatus.RxState.ACTIVEANTENNA` (set when current is drawn from antenna connector, does not distinguish passive antenna from powered-off active antenna) | `UBX-MON-RF.antPower` (per band, then only the first block is read) |
+| `antenna_state` | No (only antenna error bit) | **Not directly available** (`RxError.ANTENNA` only reports overcurrent conditions, no SHORT/OPEN distinction) | `UBX-MON-RF.antStatus` (per band, then only the first block is read, no overcurrent reporting) |
+| `antenna_power` | No | **Not directly available** (`ReceiverStatus.RxState.ACTIVEANTENNA` is set when current is drawn from antenna connector, it does not distinguish passive antenna from powered-off active antenna) | `UBX-MON-RF.antPower` (per band, then only the first block is read) |
 | `authentication_state` | Yes | `GALAuthStatus.OSNMAStatus` | Multiple sources available: `UBX-SEC-OSNMA.dsmAuthenticationStatus` / `UBX-NAV-PVT.nmaFixStatus` / `UBX-SEC-OSNMA.nmaStatus` / `UBX-SEC-OSNMA.osnmaEnabled` |
 | `jamming_state` | Yes | `RFStatus.RFBand.Info.Mode` (per band, then we take the worst case) |  `UBX-SEC-SIG.jamState` (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) | 
 | `spoofing_state` | Yes | `RFStatus.Flags` bits 0-1 | `UBX-SEC-SIG.spfState` / `UBX-NAV-STATUS.spoofDetState` |
 | `raim_state` | Yes | `PVTGeodetic.AlertFlag` bits 0-1 | `UBX-TIM-TP.raim` |
-| `raim_hfom` | Yes | `DOP.HPL` | Not directly available (`UBX-NAV-PVT.hAcc` not RAIM-specific) |
-| `raim_vfom` | Yes | `DOP.VPL` | Not directly available (`UBX-NAV-PVT.vAcc` not RAIM-specific) |
+| `raim_hfom` | Yes | `DOP.HPL` | **Not directly available** (`UBX-NAV-PVT.hAcc` is not RAIM-specific) |
+| `raim_vfom` | Yes | `DOP.VPL` | **Not directly available** (`UBX-NAV-PVT.vAcc` is not RAIM-specific) |
 | `corrections_age` | No | `PVTGeodetic.MeanCorrAge` | `UBX-NAV-PVT.lastCorrectionAge` (lookup table needed) (`NAV-PVT.diffAge`: NMEA only) |
 | `cpu_load` | No | `ReceiverStatus.CPULoad` | `UBX-MON-SYS.cpuLoad`  |
 | `up_time` | No | `ReceiverStatus.UpTime` | `UBX-MON-SYS.runTime` |
@@ -126,7 +126,7 @@ Finally, fields for per-band spoofing detection and mitigation could be added sp
 |-------|--------------------------|------------------|---------------|
 | `frequency` | No | `RFStatus.RFBand.Frequency` | `UBX-SEC-SIG.jamStateCentFreq.centFreq` |
 | `band_jamming_state` | Yes (but not per-band) | `RFStatus.RFBand.Info.Mode` | `UBX-SEC-SIG.jamStateCentFreq.jammed`  |
-| `band_mitigation_state` | No | `RFStatus.RFBand.Info.Mode` bits 0-3 | Not available (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
+| `band_mitigation_state` | No | `RFStatus.RFBand.Info.Mode` bits 0-3 | **Not available** (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
 
 ## Updated and new enumerations 
 
@@ -184,9 +184,9 @@ Finally, fields for per-band spoofing detection and mitigation could be added sp
 
 This section presents the fields that were considered but not included in the proposed `GNSS_BANDS` message, along with three alternative versions:
 
-1. The minimal message from the detailed design section, extended with interference power, which is currently only available from Septentrio (standard unit).
-2. The above, further extended with fields for per-band spoofing detection and mitigation. These fields cannot yet be populated by any vendor but are included speculatively to future-proof the message. Enumerations for these have not yet been defined.
-3. A fully extended version including all interesting fields exposed by at least one vendor, covering the raw front-end diagnostics.
+**1.** The minimal message from the detailed design section, extended with interference power, which is currently only available from Septentrio (standard unit).
+**2.** The above, further extended with fields for per-band spoofing detection and mitigation. These fields cannot yet be populated by any vendor but are included speculatively to future-proof the message. Enumerations for these have not yet been defined.
+**3.** A fully extended version including all interesting fields exposed by at least one vendor, covering the raw front-end diagnostics.
 
 A global field mapping table is provided at the end of this section.
 
@@ -243,21 +243,21 @@ A global field mapping table is provided at the end of this section.
 </message>
 ```
 
-| Field | In previous `GNSS_INTEGRITY` | Septentrio source | u-blox source |
-|-------|--------------------------|------------------|---------------|
-| `frequency` | No | `RFStatus.RFBand.Frequency` | `UBX-SEC-SIG.jamStateCentFreq.centFreq` |
-| `band_id` | No | Not available | ` UBX-MON-RF.blockId` |
-| `band_jamming_state` | Yes (but not per-band) | `RFStatus.RFBand.Info.Mode` | `UBX-SEC-SIG.jamStateCentFreq.jammed` |
-| `band_mitigation_state` | No | `RFStatus.RFBand.Info.Mode` bits 0-3 | Not available (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
-| `interference_bandwidth` | No | `RFStatus.RFBand.Bandwidth` (kHz) | Not available |
-| `interference_power` | No | `RFStatus.RFBand.Power` (dBm) | Not available |
-| `noise_floor` | No | Not available | `UBX-MON-RF.noisePerMS` |
-| `agc_count` | No | Not available (Gain available in `ReceiverStatus.AGCState.Gain`, expressed in dB) | `UBX-MON-RF.agcCnt` |
-| `cw_jamming_level` | No | Not available | `UBX-MON-RF.cwSuppression` |
-| `ofs_i`, `mag_i`, `ofs_q`, `mag_q` | No | Not available | `UBX-MON-RF` |
-| `band_antenna_state` | No | Global only (error bit) | `UBX-MON-RF.antStatus` |
-| `band_antenna_power` | No | Global only | `UBX-MON-RF.antPower` |
-| `band_spoofing_state`, `band_spoofing_mitigation_state` | No | Not available | Not available |
+| Field | In previous `GNSS_INTEGRITY` | Present in Alternative(s) | Septentrio source | u-blox source |
+|-------|--------------------------|-------------|------------------|---------------|
+| `frequency` | No | 1, 2, 3 | `RFStatus.RFBand.Frequency` | `UBX-SEC-SIG.jamStateCentFreq.centFreq` |
+| `band_id` | No | 3 | **Not available** | ` UBX-MON-RF.blockId` |
+| `band_jamming_state` | Yes (but not per-band) | 1, 2, 3 | `RFStatus.RFBand.Info.Mode` | `UBX-SEC-SIG.jamStateCentFreq.jammed` |
+| `band_mitigation_state` | No | 1, 2, 3 | `RFStatus.RFBand.Info.Mode` bits 0-3 | **Not available** (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
+| `interference_bandwidth` | No | 3 | `RFStatus.RFBand.Bandwidth` (kHz) | **Not available** |
+| `interference_power` | No | 1, 2, 3 | `RFStatus.RFBand.Power` (dBm) | **Not available** |
+| `noise_floor` | No | 3 | **Not available** | `UBX-MON-RF.noisePerMS` |
+| `agc_count` | No | 3 | **Not available** (Gain available in `ReceiverStatus.AGCState.Gain`, expressed in dB) | `UBX-MON-RF.agcCnt` |
+| `cw_jamming_level` | No | 3 | **Not available** | `UBX-MON-RF.cwSuppression` |
+| `ofs_i`, `mag_i`, `ofs_q`, `mag_q` | No | 3 | **Not available** | `UBX-MON-RF` |
+| `band_antenna_state` | No | 3 | Global only (error bit) | `UBX-MON-RF.antStatus` |
+| `band_antenna_power` | No | 3 | Global only | `UBX-MON-RF.antPower` |
+| `band_spoofing_state`, `band_spoofing_mitigation_state` | No | 2 | **Not available** | **Not available** |
 
 ## Septentrio quality indicators
 
@@ -272,6 +272,12 @@ A dedicated message could also be defined to carry Septentrio's quality indicato
     <field type="uint8_t" name="post_processing_quality" minValue="0" maxValue="10" invalid="UINT8_MAX"> Septentrio-scale value representing the estimated PPK quality, or 255 if not available.</field>
 </message>
 ```
+| Field | In previous `GNSS_INTEGRITY` | Septentrio source | u-blox source |
+|-------|--------------------------|------------------|---------------|
+| `corrections_quality` | Yes | `QualityInd` type 30 (0–10) | No equivalent |
+| `system_status_summary` | Yes | `QualityInd` type 0 (0–10) | No equivalent |
+| `gnss_signal_quality` | Yes | `QualityInd` type 1 (0–10) | No equivalent |
+| `post_processing_quality` | Yes | `QualityInd` type 31 (0–10) | No equivalent |
 
 # Unresolved Questions
 
