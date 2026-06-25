@@ -184,9 +184,9 @@ Finally, fields for per-band spoofing detection and mitigation could be added sp
 
 This section presents the fields that were considered but not included in the proposed `GNSS_BANDS` message, along with three alternative versions:
 
-**1.** The minimal message from the detailed design section, extended with interference power, which is currently only available from Septentrio (standard unit).
-**2.** The above, further extended with fields for per-band spoofing detection and mitigation. These fields cannot yet be populated by any vendor but are included speculatively to future-proof the message. Enumerations for these have not yet been defined.
-**3.** A fully extended version including all interesting fields exposed by at least one vendor, covering the raw front-end diagnostics.
+- **Alternative 1:** The minimal message from the detailed design section, extended with interference power, which is currently only available from Septentrio (standard unit).
+- **Alternative 2:** The above, further extended with fields for per-band spoofing detection and mitigation. These fields cannot yet be populated by any vendor but are included speculatively to future-proof the message. Enumerations for these have not yet been defined.
+- **Alternative 3:** A fully extended version including all interesting fields exposed by at least one vendor, covering the raw front-end diagnostics.
 
 A global field mapping table is provided at the end of this section.
 
