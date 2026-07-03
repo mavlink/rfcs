@@ -322,7 +322,7 @@ Given the consistency of interference-related characteristics across Septentrio 
 
 ## Septentrio quality indicators
 
-To prevent Septentrio users from losing information previously transmitted by `GNSS_INTEGRITY`, a dedicated message could also be defined to carry Septentrio's quality indicators, preserving the four fields that were removed from the new `GNSS_INTEGRITY`. While they cannot be populated by other vendors, they provide a simple and immediately readable health summary that is useful for ground station displays and operator situational awareness. It could be optional for example. 
+To prevent Septentrio users from losing information previously transmitted by `GNSS_INTEGRITY`, a dedicated message could also be defined to carry Septentrio's quality indicators, preserving the four fields that were removed from the new `GNSS_INTEGRITY`. While they cannot be populated by other vendors, they provide a simple and immediately readable health summary that is useful for ground station displays and operator situational awareness. This message could be optional, for example.
 ```xml
 <message id="450" name="GNSS_SEPT_QUALITY">
     <description>Quality indicators for Septentrio GNSS receivers.</description>
