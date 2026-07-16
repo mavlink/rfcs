@@ -244,7 +244,7 @@ As a result, the number of reported bands may vary over time depending on the re
 
 ## Intended message overhead
 
-To evaluate the bandwidth overhead of `GNSS_INTEGRITY`, the fixed framing overhead introduced by each MAVLink v2 message must be considered. Each message adds a [12-byte overhead](https://mavlink.io/en/guide/serialization.html), consisting of a 10-byte header and a 2-byte checksum, while the signature field is optional:
+To evaluate the bandwidth overhead of `GNSS_INTEGRITY`, the fixed framing overhead introduced by each MAVLink v2 message must be considered. Each message adds a [12-byte overhead](https://mavlink.io/en/guide/serialization.html#mavlink2_packet_format), consisting of a 10-byte header and a 2-byte checksum, while the signature field is optional:
 ```
 0   1   2   3   4   5   6   7   8   9   10                      n+10    n+12          n+24
 +---+---+---+---+---+---+---+---+---+---+---------[...]---------+---+---+----[...]----+
@@ -273,7 +273,7 @@ The main difference between these two approaches is the resulting bandwidth over
 Bandwidth analysis (3 reported bands, 1 Hz):
 - Payload size: **7 bytes** (`id` + `frequency` + `band_jamming_state` + `band_mitigation_state`)
 - Protocol overhead per message: **12 bytes** (10-byte header + 2-byte checksum)
-- Total bandwidth for three reported bands: 3 * (7 + 12) = **57 bytes/sec**
+- Total bandwidth: 3 * (7 + 12) = **57 bytes/sec**
 
 ```
 +---------------------------+---------------------+----+
@@ -300,18 +300,22 @@ Bandwidth analysis (3 reported bands, 1 Hz):
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
 </message>
 ```
-Bandwidth analysis (3 reported bands, 1 Hz):
-- Payload size for three bands: **20 bytes** (`id` + `band_count` + 3 * (`frequency` + `band_jamming_state` + `band_mitigation_state`))
-- Total bandwidth: 21 + 12 = **32 bytes/sec**
-```
-+---------------------------+--------------------------------------------------------------+----+
-|        HEADER (10B)       | BAND HEADER (2B) + [BAND 1 (6B) + BAND 2 (6B) + BAND 3 (6B)] | 2B | 32 bytes
-+---------------------------+--------------------------------------------------------------+----+ 
-                                                                                           Total: 32 bytes/sec
-```
-The second approach reduces bandwidth usage by 25 bytes/sec while transmitting all reported bands in a single message, making it both more efficient and easier for the flight controller to process. For these reasons, it is the approach proposed in this RFC.
+The second approach requires defining a `GNSS_MAX_BANDS` constant that specifies the maximum number of frequency bands that can be encoded in a single `GNSS_BANDS` message. One possibility would be to derive this value from the maximum number of dynamic sub-blocks supported by the drivers, since each sub-block corresponds to one center frequency.
 
-This approach requires defining a `GNSS_MAX_BANDS` constant specifying the maximum number of frequency bands that can be encoded in a single `GNSS_BANDS` message. One possibility would be to derive this value from the maximum number of dynamic sub-blocks supported by the drivers, since each sub-block corresponds to one center frequency.
+However, since static arrays are used, their size determines the transmitted payload, even if fewer bands are reported. As an illustrative example, assume that three frequency bands are reported and `GNSS_MAX_BANDS` is set to three.
+
+The resulting bandwidth overhead is as follows (3 reported bands, 1 Hz):
+- Payload size: **20 bytes** (`id` + `band_count` + 3 * (`frequency` + `band_jamming_state` + `band_mitigation_state`))
+- Total bandwidth: 20 + 12 = **32 bytes/sec**
+```
++---------------------------+-------------------------------------------------------------------------------------+----+
+|        HEADER (10B)       | BAND HEADER (2B) + FREQ[3] (3 * 4B)  + JAMMING[3] (3 * 1B) + MITIGATION[3] (3 * 1B) | 2B | 32 bytes
++---------------------------+-------------------------------------------------------------------------------------+----+ 
+                                                                                                                  Total: 32 bytes/sec
+```
+Because each individual band payload is small, the protocol overhead associated with transmitting multiple MAVLink messages becomes significant in the first approach. In this three-band example, using a single array-based message reduces bandwidth usage by **25 bytes/sec** while transmitting all reported bands in a single message, making it both more efficient and easier for the flight controller to process.
+
+For these reasons, this is the approach proposed in this RFC. Its limitations when larger values of `GNSS_MAX_BANDS` are used are discussed below.
 
 To put the proposed bandwidth into perspective, the following table compares the updated `GNSS_INTEGRITY` and `GNSS_BANDS` messages with the standard high-frequency `GPS_RAW_INT` stream and the original `GNSS_INTEGRITY` message:
 | Message | Payload size (bytes) | Total size (bytes) | Rate | Bandwidth (bytes/sec) |
@@ -326,7 +330,15 @@ To put the proposed bandwidth into perspective, the following table compares the
 
 Compared with standard high-frequency navigation data, the combined `GNSS_INTEGRITY` and `GNSS_BANDS` messages require less than one-third of the bandwidth of a basic 5 Hz `GPS_RAW_INT` stream, and only about one-fifth of that required by the fully extended version. 
 
-Compared with the original `GNSS_INTEGRITY` message, the proposed split-message architecture, transmitted at 1 Hz, increases bandwidth usage by only 37 bytes/sec. This additional overhead is modest compared with existing MAVLink traffic, representing less than one-fifth of the bandwidth required by a standard 5 Hz `GPS_RAW_INT` stream while providing more detailed GNSS resilience and per-band interference diagnostics than the original single-message design.
+Compared with the original `GNSS_INTEGRITY` message, the proposed split-message architecture transmitted at 1 Hz increases bandwidth usage by only **37 bytes/sec**. This additional overhead is modest compared with existing MAVLink traffic, representing less than one-fifth of the bandwidth required by a standard 5 Hz `GPS_RAW_INT` stream while providing more detailed GNSS resilience and per-band interference diagnostics than the original single-message design.
+
+However, real receivers may expose more than three frequency bands, and the number of reported bands is dynamic. Depending on the receiver implementation and the surrounding RF environment, this number may be greater than three or even zero. In this context, the array-based approach has two limitations that must be taken into account:
+
+1. If fewer than `GNSS_MAX_BANDS` bands are reported, or even none at all, the unused array entries still occupy space in the payload. For example, if `GNSS_MAX_BANDS` is set to 8 but only 3 bands are reported, the remaining five entries are transmitted using invalid values, resulting in a bandwidth of **62 bytes/sec** instead of **32 bytes/sec**. In this case, transmitting three individual single-band messages (**57 bytes/sec**) would actually be more efficient, as the unused array elements introduce **30 bytes/sec** of unnecessary bandwidth overhead.  
+   When no frequency bands are reported, unused array elements could be initialized to zero so that [MAVLink 2 payload truncation](https://mavlink.io/en/guide/serialization.html#payload_truncation) can truncate empty bytes at the end of the serialized message payload (except for the first byte). This optimization applies only to trailing zero bytes and therefore cannot eliminate unused array entries that precede populated fields.
+2. Defining a fixed `GNSS_MAX_BANDS` also limits the maximum number of center frequencies that can be reported in a single message.
+
+Given these limitations and the dynamic nature of the per-band information reported by receivers, selecting an appropriate value for `GNSS_MAX_BANDS` is therefore a key design decision if the array-based approach is adopted.
 
 ## DroneCAN standardization
 
@@ -342,7 +354,7 @@ This section presents the fields that were considered but not included in the pr
 - **Alternative 2:** Alternative 1, further extended with a per-band spoofing detection state. This field cannot currently be populated by any vendor but is included speculatively to future-proof the message. This possibility was discussed with Septentrio. Since spoofing mitigation is not reported even at the receiver level, introducing a dedicated per-band mitigation state would not be meaningful. As with per-band jamming detection, the same enumeration as the global spoofing state could be reused.
 - **Alternative 3:** A fully extended version including all currently available jamming- and antenna-related per-band fields exposed by at least one vendor, including raw RF front-end diagnostics.
 
-A global field mapping table summarizing the source availability for all alternatives is provided at the end of this section. For each alternative, the corresponding payload sizes and bandwidth impacts are also provided, assuming a three-band report transmitted at 1 Hz. 
+A global field mapping table summarizing the source availability for all alternatives is provided at the end of this section. For each alternative, the corresponding payload sizes and bandwidth impacts are provided, assuming a three-band report transmitted at 1 Hz. In these calculations, `GNSS_MAX_BANDS` is set to 3.
 
 **Alternative 1: `GNSS_BANDS` with interference characteristics**
 ```xml
@@ -466,14 +478,14 @@ Any comments, recommendations, and ideas are welcome.
 
 The following questions remain open:
 
-- Are all the fields added to `GNSS_INTEGRITY` relevant? In particular, is `up_time` worth the 4 bytes it occupies? Would other metrics be useful? 
-- Should `antenna_state` and `antenna_power` remain two separate fields, or be merged into a single field by adding an `OFF` entry to `GNSS_ANTENNA_STATE`? Are all states of `GNSS_ANTENNA_STATE` relevant, given the different mappings available across vendors?
-- Is it useful to distinguish between spoofing detection alone and the indication that receiver output (position or raw measurements) may be affected by spoofing in `GNSS_SPOOFING_STATE`, even if the currently available receiver fields are not perfectly aligned with this distinction? This has been discussed in parallel with Septentrio, which shares the objective of improving the link between spoofing detection and its impact on receiver output, and is continuing development in this direction.
+- Are all the fields added to `GNSS_INTEGRITY` relevant? In particular, is `up_time` worth the 4 bytes it occupies, or would other metrics provide more value?
+- Should `antenna_state` and `antenna_power` remain two separate fields, or be merged into a single field by adding an `OFF` entry to `GNSS_ANTENNA_STATE`? Are all states currently defined in `GNSS_ANTENNA_STATE` relevant, given the different mappings available across vendors?
+- Is it useful to distinguish between spoofing detection alone and the indication that receiver output (position or raw measurements) may be affected by spoofing in `GNSS_SPOOFING_STATE`, even if the currently available receiver fields are not perfectly aligned with this distinction? This topic has been discussed in parallel with Septentrio, which shares the objective of improving the link between spoofing detection and its impact on receiver output, and is continuing development in this direction.
 - Should the `GNSS_AUTHENTICATION_STATE_OK` entry be renamed to `OPERATIONAL`, `ENABLED`, `ACTIVE`, or `AUTHENTICATING`?
-- Is representing all reported bands in a single `GNSS_BANDS` message, with each per-band field defined as an array, the best approach? If so, what should be the maximum array size (`GNSS_MAX_BANDS`)?
-- Do operators need the raw per-band RF front-end diagnostics in MAVLink at the expense of bandwidth efficiency and vendor agnosticism, or are the processed jamming and mitigation states sufficient? Is interference bandwidth and interference power worth including, given that both are currently not available from u-blox but carry standard units (kHz and dBm respectively)?
+- Is representing all reported bands in a single `GNSS_BANDS` message, with each per-band field defined as an array, the best approach, given that the number of available bands is dynamic (and may be zero)? If so, what should be the maximum array size (`GNSS_MAX_BANDS`) to limit the transfer of unused fields while ensuring that all relevant bands can be reported?
+- Do operators need raw per-band RF front-end diagnostics in MAVLink, at the cost of reduced bandwidth efficiency and vendor agnosticism, or are the processed jamming and mitigation states sufficient? Are interference bandwidth and interference power worth including, given that they are currently not available from u-blox but are expressed in standard units (kHz and dBm, respectively)?
 - Should a field for per-band spoofing detection be added speculatively to `GNSS_BANDS`, even though no vendor currently provides this information and this would extend the scope of the message beyond interference reporting?
-- Is a dedicated (and potentially optional) `GNSS_SEPT_QUALITY` message the right approach for reporting Septentrio's quality indicators?
+- Is a dedicated (and potentially optional) `GNSS_SEPT_QUALITY` message the right approach for reporting Septentrio-specific quality indicators?
 
 # References 
 
