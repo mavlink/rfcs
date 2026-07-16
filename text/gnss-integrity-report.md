@@ -78,11 +78,13 @@ The related enumerations are as follows:
 
 # Detailed Design 
 
-The proposal relies on two messages: an updated `GNSS_INTEGRITY` for global receiver-level information, and a new `GNSS_BANDS` reporting diagnostics for each frequency band individually. 
+The proposal relies on two messages: an updated `GNSS_INTEGRITY` message for global receiver-level information, and a new `GNSS_BANDS` message for reporting diagnostics at the individual frequency-band level.
 
-For each, a proposed implementation is provided alongside a table showing field presence in the original `GNSS_INTEGRITY` message and the corresponding data sources in Septentrio and u-blox receiver outputs. These two manufacturers were chosen as the primary references to guide the redesign: they represent different implementation philosophies, which makes their comparison a useful tool for identifying the right level of abstraction for vendor-agnostic fields. NovAtel receiver outputs were then examined as a secondary reference to validate the proposed approach, as described in the [Approach validation based on NovAtel receiver outputs](#approach-validation-based-on-novatel-receiver-outputs) subsection of the [Alternatives](#alternatives) section.
+For each message, a proposed implementation is provided alongside a table showing field presence in the original `GNSS_INTEGRITY` message and the corresponding data sources in Septentrio and u-blox receiver outputs. These two manufacturers were selected as the primary references for this redesign: both are already supported by PX4 and ArduPilot, and they represent different implementation approaches, making their comparison useful for identifying the appropriate level of abstraction for vendor-agnostic fields. NovAtel receiver outputs were then examined as a secondary reference to validate the proposed approach, as described in the [Approach validation based on NovAtel receiver outputs](#approach-validation-based-on-novatel-receiver-outputs) subsection of the [Alternatives](#alternatives) section.
 
-Moreover, the relevant fields and enumerations have all been renamed, changing the prefix from `GPS_*` to `GNSS_*`. 
+The intended transmission rates for these messages, as well as the bandwidth overhead they introduce, are discussed in the [Intended message rates](#intended-message-rates) and [Intended message overhead](#intended-message-overhead) sections.
+
+Additionally, all relevant fields and enumerations have been renamed by replacing the `GPS_*` prefix with `GNSS_*`, in order to better reflect support for multiple satellite constellations.
 
 ## Global integrity and resilience status for a GNSS receiver
 
@@ -157,21 +159,22 @@ This keeps the message user-friendly, avoids populating fields that will be empt
 
 The interference characteristics (bandwidth and power) per band are not included in the minimal message, as they are not available from u-blox. However, they are available from Septentrio and may be worth including, since they are expressed in standard units. This option is presented in the [Alternatives](#alternatives) section, along with the raw front-end fields mentioned above.
 
-Finally, a per-band spoofing detection field could be added speculatively to future-proof the message, even though no vendor currently exposes this data. 
+The proposed structure stores the information for all reported bands in a single `GNSS_BANDS` message. The `band_count` field indicates the number of frequency bands contained in the arrays below. Each field is therefore defined as a static array of size `GNSS_MAX_BANDS` (not yet defined), with the same index referring to the same reported band across all arrays. This avoids the overhead of multiple small messages while keeping the message structure simple for flight controller implementations. The choice of this structure is further discussed and justified in the [Intended message overhead](#intended-message-overhead) section.
 
 Minimal `GNSS_BANDS` message:
 ```xml
 <message id="442" name="GNSS_BANDS">
     <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint32_t" name="frequency" units="Hz" invalid="0">Center frequency of this RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
-    <field type="uint8_t" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
-    <field type="uint8_t" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
+    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
 </message>
 ```
-
 | Field | In previous `GNSS_INTEGRITY` | Septentrio source | u-blox source |
 |-------|--------------------------|------------------|---------------|
+| `band_count` | No | `RFStatus.N` | `UBX-SEC-SIG.jamNumCentFreqs` |
 | `frequency` | No | `RFStatus.RFBand.Frequency` | `UBX-SEC-SIG.jamStateCentFreq.centFreq` |
 | `band_jamming_state` | Yes (but not per-band) | `RFStatus.RFBand.Info.Mode` | `UBX-SEC-SIG.jamStateCentFreq.jammed`  |
 | `band_mitigation_state` | No | `RFStatus.RFBand.Info.Mode` bits 0-3 | **Not available** (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
@@ -225,76 +228,185 @@ Minimal `GNSS_BANDS` message:
 </enum>
 ```
 
+## Intended message rates
+
+To minimize serial and CAN link utilization while providing comprehensive diagnostic capabilities, we propose streaming both `GNSS_INTEGRITY` and `GNSS_BANDS` at a low, synchronized rate. These diagnostic messages monitor resilience and interference metrics that evolve on a much slower timescale than high-frequency positioning and navigation streams such as `GPS_RAW_INT`, which typically update at 5 Hz to 10 Hz.
+
+The proposed message rates are as follows:
+- **`GNSS_INTEGRITY`: 1 Hz.** Global status metrics change slowly and do not require high-frequency updates. Moreover, 1 Hz is the default output rate for most native receiver status messages, such as Septentrio's `ReceiverStatus`, `RFStatus`, and `GALAuthStatus`.
+- **`GNSS_BANDS`: 1 Hz.** Since these diagnostics are generally extracted from the same receiver outputs as those used for the global integrity message, publishing both messages at the same rate allows the flight controller to build a consistent multi-band diagnostic snapshot once per second.
+
+It should be noted that, for both Septentrio and u-blox, the band-specific diagnostic structures do not report a static list of all supported RF bands, but only a subset of them:
+- **u-blox (via `jamStateCentFreq` sub-blocks)** provides information only for center frequencies associated with at least one active signal for which sufficient RF information is available to evaluate the jamming state.
+- **Septentrio (via `RFBand` sub-blocks)** reports only frequency bands where jamming has been detected or mitigated and does not report bands that are clean.
+
+As a result, the number of reported bands may vary over time depending on the receiver's current operating conditions and the surrounding RF environment. In both receiver formats, this value is already available through a count field in the parent message and maps directly to the `band_count` field of `GNSS_BANDS`.
+
+## Intended message overhead
+
+To evaluate the bandwidth overhead of `GNSS_INTEGRITY`, the fixed framing overhead introduced by each MAVLink v2 message must be considered. Each message adds a [12-byte overhead](https://mavlink.io/en/guide/serialization.html), consisting of a 10-byte header and a 2-byte checksum, while the signature field is optional:
+```
+0   1   2   3   4   5   6   7   8   9   10                      n+10    n+12          n+24
++---+---+---+---+---+---+---+---+---+---+---------[...]---------+---+---+----[...]----+
+|STX|LEN|INC|CMP|SEQ|SYS|COM|  MSG ID   | PAYLOAD (0-255 bytes) |  CHK  |  SIG (OPT)  |
++---+---+---+---+---+---+---+---+---+---+-----------------------+---+---+-------------+
+```
+The proposed `GNSS_INTEGRITY` payload size is 22 bytes, resulting in a total wire size of 34 bytes per message. Compared with the original `GNSS_INTEGRITY` message, this represents an increase of only 5 payload bytes, which is a reasonable trade-off for the additional diagnostic information provided.
+
+However, in this new design, the `GNSS_BANDS` message must also be included in the bandwidth budget. Since `GNSS_BANDS` can report multiple frequency bands, two transmission approaches can be considered, although other solutions are welcome:
+- **Option 1:** One message is transmitted for each reported band, with the band identified by the combination of `id` (receiver ID) and `frequency`.
+- **Option 2:** A single message is transmitted per cycle, with a `band_count` field and one array per field indexed by band.
+
+The main difference between these two approaches is the resulting bandwidth overhead. 
+
+**Option 1: Sequential single-band messages**
+
+```xml
+<message id="442" name="GNSS_BANDS">
+    <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
+    <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
+    <field type="uint32_t" name="frequency" units="Hz" invalid="0">Center frequency of this RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
+    <field type="uint8_t" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
+    <field type="uint8_t" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
+</message>
+```
+Bandwidth analysis (3 reported bands, 1 Hz):
+- Payload size: **7 bytes** (`id` + `frequency` + `band_jamming_state` + `band_mitigation_state`)
+- Protocol overhead per message: **12 bytes** (10-byte header + 2-byte checksum)
+- Total bandwidth for three reported bands: 3 * (7 + 12) = **57 bytes/sec**
+
+```
++---------------------------+---------------------+----+
+|        HEADER (10B)       | BAND 1 PAYLOAD (7B) | 2B | 19 bytes
++---------------------------+---------------------+----+ 
+
++---------------------------+---------------------+----+
+|        HEADER (10B)       | BAND 2 PAYLOAD (7B) | 2B | 19 bytes
++---------------------------+---------------------+----+
+
++---------------------------+---------------------+----+ 
+|        HEADER (10B)       | BAND 3 PAYLOAD (7B) | 2B | 19 bytes  
++---------------------------+---------------------+----+
+                                                  Total: 57 bytes/sec
+```
+**Option 2: Single multi-band array message**
+```xml
+<message id="442" name="GNSS_BANDS">
+    <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
+    <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
+    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
+</message>
+```
+Bandwidth analysis (3 reported bands, 1 Hz):
+- Payload size for three bands: **20 bytes** (`id` + `band_count` + 3 * (`frequency` + `band_jamming_state` + `band_mitigation_state`))
+- Total bandwidth: 21 + 12 = **32 bytes/sec**
+```
++---------------------------+--------------------------------------------------------------+----+
+|        HEADER (10B)       | BAND HEADER (2B) + [BAND 1 (6B) + BAND 2 (6B) + BAND 3 (6B)] | 2B | 32 bytes
++---------------------------+--------------------------------------------------------------+----+ 
+                                                                                           Total: 32 bytes/sec
+```
+The second approach reduces bandwidth usage by 25 bytes/sec while transmitting all reported bands in a single message, making it both more efficient and easier for the flight controller to process. For these reasons, it is the approach proposed in this RFC.
+
+This approach requires defining a `GNSS_MAX_BANDS` constant specifying the maximum number of frequency bands that can be encoded in a single `GNSS_BANDS` message. One possibility would be to derive this value from the maximum number of dynamic sub-blocks supported by the drivers, since each sub-block corresponds to one center frequency.
+
+To put the proposed bandwidth into perspective, the following table compares the updated `GNSS_INTEGRITY` and `GNSS_BANDS` messages with the standard high-frequency `GPS_RAW_INT` stream and the original `GNSS_INTEGRITY` message:
+| Message | Payload size (bytes) | Total size (bytes) | Rate | Bandwidth (bytes/sec) |
+| ------- | ------------------- | ------------------ | ---------------- | --------------------------- |
+| `GPS_RAW_INT` (base only) | 30 | 42 | 5 Hz | 210 |
+| `GPS_RAW_INT` (fully extended) | 52 | 64 | 5 Hz | 320 |
+| `GNSS_INTEGRITY` (original) | 17 | 29 | 1 Hz | 29 |
+| `GNSS_INTEGRITY` (proposed) | 22 | 34 | 1 Hz | 34 |
+| `GNSS_BANDS` (multiple single-band messages) | 21 | 57 | 1 Hz | 57 |
+| `GNSS_BANDS` (single multi-band message) | 20 | 32 | 1 Hz | 32 |
+| Proposed integrity report (`GNSS_INTEGRITY` + single `GNSS_BANDS`) | 42 | 66 | 1 Hz | 66 |
+
+Compared with standard high-frequency navigation data, the combined `GNSS_INTEGRITY` and `GNSS_BANDS` messages require less than one-third of the bandwidth of a basic 5 Hz `GPS_RAW_INT` stream, and only about one-fifth of that required by the fully extended version. 
+
+Compared with the original `GNSS_INTEGRITY` message, the proposed split-message architecture, transmitted at 1 Hz, increases bandwidth usage by only 37 bytes/sec. This additional overhead is modest compared with existing MAVLink traffic, representing less than one-fifth of the bandwidth required by a standard 5 Hz `GPS_RAW_INT` stream while providing more detailed GNSS resilience and per-band interference diagnostics than the original single-message design.
+
+## DroneCAN standardization
+
+Whatever message structures are ultimately adopted in MAVLink should have a 1:1 or 1-to-many equivalent standardized in DroneCAN. To avoid feature gaps between serial-connected GNSS receivers and CAN-based peripherals, the same diagnostic information should be available over both transports. This standardization can follow once the MAVLink messages have been agreed upon and validated.
+
 # Alternatives 
 
 ## Extended per-band GNSS integrity message
 
-This section presents the fields that were considered but not included in the proposed `GNSS_BANDS` message, along with three alternative versions:
+This section presents the fields that were considered but not included in the proposed minimal `GNSS_BANDS` message, along with three alternative designs:
 
-- **Alternative 1:** The minimal message from the detailed design section, extended with interference characteristics (bandwidth and power), which are not available from u-blox (standard units: kHz, dBm).
-- **Alternative 2:** The above, further extended with a per-band spoofing detection state. This field cannot yet be populated by any vendor but is included speculatively to future-proof the message. This possibility was discussed, in particular, with Septentrio. Since spoofing mitigation is not reported even at the receiver level, adding a dedicated per-band mitigation state would not be meaningful. As with per-band jamming detection, the same enumeration as the global spoofing state could be reused. 
-- **Alternative 3:** A fully extended version including all interesting fields exposed by at least one vendor, covering the raw front-end diagnostics.
+- **Alternative 1:** The minimal message from the [Detailed design](#detailed-design) section, extended with interference characteristics (bandwidth and power). Although these fields are not available from u-blox, they are reported by Septentrio using standard units (kHz and dBm). Including them would allow operators to better characterize detected interference and provide more insight than binary jamming states alone.
+- **Alternative 2:** Alternative 1, further extended with a per-band spoofing detection state. This field cannot currently be populated by any vendor but is included speculatively to future-proof the message. This possibility was discussed with Septentrio. Since spoofing mitigation is not reported even at the receiver level, introducing a dedicated per-band mitigation state would not be meaningful. As with per-band jamming detection, the same enumeration as the global spoofing state could be reused.
+- **Alternative 3:** A fully extended version including all currently available jamming- and antenna-related per-band fields exposed by at least one vendor, including raw RF front-end diagnostics.
 
-A global field mapping table is provided at the end of this section.
+A global field mapping table summarizing the source availability for all alternatives is provided at the end of this section. For each alternative, the corresponding payload sizes and bandwidth impacts are also provided, assuming a three-band report transmitted at 1 Hz. 
 
-**Alternative 1:** `GNSS_BANDS` with interference characteristics
+**Alternative 1: `GNSS_BANDS` with interference characteristics**
 ```xml
 <message id="442" name="GNSS_BANDS">
     <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint32_t" name="frequency" units="Hz" invalid="0">Center frequency of this RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
-    <field type="uint16_t" name="interference_bandwidth" units="kHz" invalid="UINT16_MAX">Bandwidth of detected interference in this band (kHz). 0 for pulsed interference.</field>
-    <field type="int8_t" name="interference_power" units="dBm" invalid="INT8_MIN">Estimated interference power in this band (dBm). 0 if not estimable or manual notch filter.</field>
-    <field type="uint8_t" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
-    <field type="uint8_t" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
+    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
+    <field type="uint16_t[GNSS_MAX_BANDS]" name="interference_bandwidth" units="kHz" invalid="[UINT16_MAX]">Bandwidth of detected interference in each band (kHz). 0 for pulsed interference.</field>
+    <field type="int8_t[GNSS_MAX_BANDS]" name="interference_power" units="dBm" invalid="[INT8_MIN]">Estimated interference power in each band (dBm). 0 if not estimable or manual notch filter.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
 </message>
 ```
 
-**Alternative 2:** `GNSS_BANDS` extended with per-band spoofing state
+**Alternative 2: `GNSS_BANDS` extended with per-band spoofing state**
 ```xml
 <message id="442" name="GNSS_BANDS">
     <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint32_t" name="frequency" units="Hz" invalid="0">Center frequency of this RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
-    <field type="uint16_t" name="interference_bandwidth" units="kHz" invalid="UINT16_MAX">Bandwidth of detected interference in this band (kHz). 0 for pulsed interference.</field>
-    <field type="int8_t" name="interference_power" units="dBm" invalid="INT8_MIN">Estimated interference power in this band (dBm). 0 if not estimable or manual notch filter.</field>
-    <field type="uint8_t" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
-    <field type="uint8_t" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
-    <field type="uint8_t" name="band_spoofing_state" enum="GNSS_SPOOFING_STATE">Per-band spoofing state.</field>
+    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
+    <field type="uint16_t[GNSS_MAX_BANDS]" name="interference_bandwidth" units="kHz" invalid="[UINT16_MAX]">Bandwidth of detected interference in each band (kHz). 0 for pulsed interference.</field>
+    <field type="int8_t[GNSS_MAX_BANDS]" name="interference_power" units="dBm" invalid="[INT8_MIN]">Estimated interference power in each band (dBm). 0 if not estimable or manual notch filter.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_spoofing_state" enum="GNSS_SPOOFING_STATE">Per-band spoofing state.</field>
 </message>
 ```
 
-**Alternative 3:** `GNSS_BANDS` extended to all currently exposed (and interesting) fields
+**Alternative 3: `GNSS_BANDS` including all jamming- and antenna-related per-band fields**
 ```xml
 <message id="442" name="GNSS_BANDS">
     <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint32_t" name="frequency" units="Hz" invalid="0">Center frequency of this RF band in Hz. 0 if not known.</field>
-    <field type="uint8_t" name="band_id">RF band id.</field>
-    <field type="uint8_t" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
-    <field type="uint8_t" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
+    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_id">RF band id.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
     <!-- Interference characteristics -->
-    <field type="uint16_t" name="interference_bandwidth" units="kHz" invalid="UINT16_MAX">Bandwidth of detected interference in this band (kHz). 0 for pulsed interference.</field>
-    <field type="int8_t" name="interference_power" units="dBm" invalid="INT8_MIN">Estimated interference power in this band (dBm). 0 if not estimable or manual notch filter.</field>
+    <field type="uint16_t[GNSS_MAX_BANDS]" name="interference_bandwidth" units="kHz" invalid="[UINT16_MAX]">Bandwidth of detected interference in each band (kHz). 0 for pulsed interference.</field>
+    <field type="int8_t[GNSS_MAX_BANDS]" name="interference_power" units="dBm" invalid="[INT8_MIN]">Estimated interference power in each band (dBm). 0 if not estimable or manual notch filter.</field>
     <!-- Raw RF front-end diagnostics -->
-    <field type="uint16_t" name="noise_floor" invalid="UINT16_MAX">Raw noise floor as measured by the receiver front-end.</field>
-    <field type="uint16_t" name="agc_count" invalid="UINT16_MAX">Automatic Gain Control (AGC) level.</field>
-    <field type="uint8_t" name="cw_jamming_level" invalid="UINT8_MAX">Continuous Wave (CW) jamming level (0=no CW jamming, 255=strong CW jamming).</field>
+    <field type="uint16_t[GNSS_MAX_BANDS]" name="noise_floor" invalid="[UINT16_MAX]">Raw noise floor as measured by the receiver front-end.</field>
+    <field type="uint16_t[GNSS_MAX_BANDS]" name="agc_count" invalid="[UINT16_MAX]">Automatic Gain Control (AGC) level.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="cw_jamming_level" invalid="[UINT8_MAX]">Continuous Wave (CW) jamming level (0=no CW jamming, 255=strong CW jamming).</field>
     <!-- I/Q diagnostics — antenna / signal chain health -->
-    <field type="int8_t" name="ofs_i" invalid="INT8_MAX">Imbalance of I-channel.</field>
-    <field type="uint8_t" name="mag_i" invalid="UINT8_MAX">Magnitude of I-channel (0=no signal).</field>
-    <field type="int8_t" name="ofs_q" invalid="INT8_MAX">Imbalance of Q-channel.</field>
-    <field type="uint8_t" name="mag_q" invalid="UINT8_MAX">Magnitude of Q-channel (0=no signal).</field>
+    <field type="int8_t[GNSS_MAX_BANDS]" name="ofs_i" invalid="[INT8_MAX]">Imbalance of I-channel.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="mag_i" invalid="[UINT8_MAX]">Magnitude of I-channel (0=no signal).</field>
+    <field type="int8_t[GNSS_MAX_BANDS]" name="ofs_q" invalid="[INT8_MAX]">Imbalance of Q-channel.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="mag_q" invalid="[UINT8_MAX]">Magnitude of Q-channel (0=no signal).</field>
     <!-- Per-band antenna diagnostics -->
-    <field type="uint8_t" name="band_antenna_state" enum="GNSS_ANTENNA_STATE">Status of the antenna for this band.</field>
-    <field type="uint8_t" name="band_antenna_power" enum="GNSS_ANTENNA_POWER">Power state of the antenna for this band.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_antenna_state" enum="GNSS_ANTENNA_STATE">Status of the antenna for each band.</field>
+    <field type="uint8_t[GNSS_MAX_BANDS]" name="band_antenna_power" enum="GNSS_ANTENNA_POWER">Power state of the antenna for each band.</field>
 </message>
 ```
 
-| Field | In previous `GNSS_INTEGRITY` | Present in Alternative(s) | Septentrio source | u-blox source |
+**Global field mapping table for all alternatives:**
+| Field | In previous `GNSS_INTEGRITY` | Included in Alternative(s) | Septentrio source | u-blox source |
 |-------|--------------------------|-------------|------------------|---------------|
+| `band_count` | No | 1, 2, 3 | `RFStatus.N` | `UBX-SEC-SIG.jamNumCentFreqs` |
 | `frequency` | No | 1, 2, 3 | `RFStatus.RFBand.Frequency` | `UBX-SEC-SIG.jamStateCentFreq.centFreq` |
-| `band_id` | No | 3 | **Not available** | ` UBX-MON-RF.blockId` |
+| `band_id` | No | 3 | **Not available** | `UBX-MON-RF.blockId` |
 | `band_jamming_state` | Yes (but not per-band) | 1, 2, 3 | `RFStatus.RFBand.Info.Mode` | `UBX-SEC-SIG.jamStateCentFreq.jammed` |
 | `band_mitigation_state` | No | 1, 2, 3 | `RFStatus.RFBand.Info.Mode` bits 0-3 | **Not available** (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
 | `interference_bandwidth` | No | 1, 2, 3 | `RFStatus.RFBand.Bandwidth` (kHz) | **Not available** |
@@ -303,9 +415,17 @@ A global field mapping table is provided at the end of this section.
 | `agc_count` | No | 3 | **Not available** (Gain available in `ReceiverStatus.AGCState.Gain`, expressed in dB) | `UBX-MON-RF.agcCnt` |
 | `cw_jamming_level` | No | 3 | **Not available** | `UBX-MON-RF.cwSuppression` |
 | `ofs_i`, `mag_i`, `ofs_q`, `mag_q` | No | 3 | **Not available** | `UBX-MON-RF` |
-| `band_antenna_state` | No | 3 | Global only (error bit) | `UBX-MON-RF.antStatus` |
-| `band_antenna_power` | No | 3 | Global only | `UBX-MON-RF.antPower` |
+| `band_antenna_state` | No | 3 | Global antenna diagnostics only | `UBX-MON-RF.antStatus` |
+| `band_antenna_power` | No | 3 | Global antenna diagnostics only | `UBX-MON-RF.antPower` |
 | `band_spoofing_state` | No | 2 | **Not available** | **Not available** |
+
+**Bandwidth impact of the proposed and alternative `GNSS_BANDS` designs (three reported bands, 1 Hz transmission):**
+| Message design | Payload size (bytes) | Total size (bytes) | Rate | Bandwidth (bytes/sec) | Increase compared with minimal message |
+| --------------- | ------------------------------ | ------------------ | --------- | --------------------- | -------------------------------------- |
+| Minimal `GNSS_BANDS` | 20 | 32 | 1 Hz | 32 | - |
+| Alternative 1: interference characteristics | 29 | 41 | 1 Hz | 41 | +9 bytes/sec |
+| Alternative 2: per-band spoofing state | 32 | 44 | 1 Hz | 44 | +12 bytes/sec |
+| Alternative 3: raw RF and antenna diagnostics | 65 | 77 | 1 Hz | 77 | +45 bytes/sec |
 
 ## Approach validation based on NovAtel receiver outputs
 
@@ -347,17 +467,13 @@ Any comments, recommendations, and ideas are welcome.
 The following questions remain open:
 
 - Are all the fields added to `GNSS_INTEGRITY` relevant? In particular, is `up_time` worth the 4 bytes it occupies? Would other metrics be useful? 
-- Should `antenna_state` and `antenna_power` be kept as two separate fields, or merged into a single field by adding an `OFF` entry to `GNSS_ANTENNA_STATE`? Are all states of `GNSS_ANTENNA_STATE` relevant, given the different possible mappings between vendors?
+- Should `antenna_state` and `antenna_power` remain two separate fields, or be merged into a single field by adding an `OFF` entry to `GNSS_ANTENNA_STATE`? Are all states of `GNSS_ANTENNA_STATE` relevant, given the different mappings available across vendors?
 - Is it useful to distinguish between spoofing detection alone and the indication that receiver output (position or raw measurements) may be affected by spoofing in `GNSS_SPOOFING_STATE`, even if the currently available receiver fields are not perfectly aligned with this distinction? This has been discussed in parallel with Septentrio, which shares the objective of improving the link between spoofing detection and its impact on receiver output, and is continuing development in this direction.
 - Should the `GNSS_AUTHENTICATION_STATE_OK` entry be renamed to `OPERATIONAL`, `ENABLED`, `ACTIVE`, or `AUTHENTICATING`?
-- Do operators need the raw per-band RF front-end diagnostics in MAVLink at the expense of bandwidth efficiency and vendor agnosticism, or are the processed jamming and mitigation states sufficient? Is interference bandwidth and interference power worth including, given that both are currently not available from u-blox but carry standard units (dBm and kHz respectively)?
-- Should a field for per-band spoofing detection be added speculatively to `GNSS_BANDS`, even though no vendor currently provides this information?
-- Is a dedicated `GNSS_SEPT_QUALITY` message the right approach for Septentrio's quality indicators?
-
-A separate question concerns the transmission model for `GNSS_BANDS`. Two options can be envisioned, though other solutions are welcome:
-
-- One message per band per cycle, with the band identified by the combination of `id` (the receiver ID) and `frequency`.
-- A single message per cycle, with a `band_count` field and per-field arrays indexed by band.
+- Is representing all reported bands in a single `GNSS_BANDS` message, with each per-band field defined as an array, the best approach? If so, what should be the maximum array size (`GNSS_MAX_BANDS`)?
+- Do operators need the raw per-band RF front-end diagnostics in MAVLink at the expense of bandwidth efficiency and vendor agnosticism, or are the processed jamming and mitigation states sufficient? Is interference bandwidth and interference power worth including, given that both are currently not available from u-blox but carry standard units (kHz and dBm respectively)?
+- Should a field for per-band spoofing detection be added speculatively to `GNSS_BANDS`, even though no vendor currently provides this information and this would extend the scope of the message beyond interference reporting?
+- Is a dedicated (and potentially optional) `GNSS_SEPT_QUALITY` message the right approach for reporting Septentrio's quality indicators?
 
 # References 
 
@@ -370,9 +486,10 @@ A separate question concerns the transmission model for `GNSS_BANDS`. Two option
 
 <br>
 
-- Technical references (GNSS receiver documentation):
+- Technical references:
     - [Mosaic-G5 Firmware v1.1.0 Reference Guide](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3H)
     - [Mosaic-X5 Firmware v4.15.1 Reference Guide](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-x5)
     - [u-blox X20 HPG 2.00 Interface Description](https://content.u-blox.com/sites/default/files/documents/u-blox-20-HPG-2.00_InterfaceDescription_UBXDOC-304424225-19888.pdf)
     - [u-blox F9 HPG 1.51 Interface Description](https://content.u-blox.com/sites/default/files/documents/u-blox-F9-HPG-1.51_InterfaceDescription_UBXDOC-963802114-13124.pdf)
     - [Novatel OEM7 Commands and Logs Manual](https://docs.novatel.com/OEM7/Content/PDFs/OEM7_Commands_Logs_Manual.pdf)
+    - [MAVLink Packet Serialization Guide](https://mavlink.io/en/guide/serialization.html)
