@@ -15,8 +15,7 @@ A secondary goal is to make both messages as future-proof as possible. This requ
 
 By contrast, if a field uses a concrete, standard unit (Hz, seconds, etc.) or maps to an explicit enumeration (detected, not detected, mitigated, etc.), it can remain unpopulated today and be filled in transparently when either a receiver firmware update exposes the data or a driver is updated to parse it. In both cases, the protocol will remain unchanged. 
 
-However, there are cases where vendor-specific data genuinely aids diagnostics with a more user-friendly approach. Septentrio's quality indicators are one example: they present complex receiver health metrics as a simple 0-10 scale, similar to how a phone displays signal strength or battery level. One option would be a dedicated, and potentially optional, vendor extension message carrying this kind of data, keeping the main integrity messages vendor-agnostic. This remains an open design question. A proposal is presented in the [Alternatives](#alternatives) section. 
-
+However, there are cases where vendor-specific data genuinely aids diagnostics with a more user-friendly approach. Septentrio-specific quality indicators are one example: they present complex receiver health metrics as a simple 0-10 scale, similar to how a phone displays signal strength or battery level. One option would be a dedicated, and potentially optional, vendor extension message carrying this kind of data, keeping the main integrity messages vendor-agnostic. This remains an open design question. A proposal is presented in the [Alternatives](#alternatives) section. 
 
 ## Original Design
 
@@ -93,80 +92,73 @@ Additionally, all relevant fields and enumerations have been renamed by replacin
 
 ## Global integrity and resilience status for a GNSS receiver
 
-Most of the original `GNSS_INTEGRITY` has been retained. The changes are as follows:
-- Main antenna status and power have been added. While both concepts are exposed by Septentrio and u-blox, the available diagnostics differ (in fault classification or power reporting, for example), so not all mappings can be provided for every vendor. More details are available in the related table. <br> Combining the status and power fields into a single one by adding an `OFF` entry to the `GNSS_ANTENNA_STATE` enumeration is also a possibility.
-
-- Septentrio's quality indicators (0-10 scale) have been removed.
-
-- `corrections_age`, `cpu_load`, and `up_time` have been added with standard units, to aid debugging. 
-Both Septentrio and u-blox expose these fields. However, `corrections_age` requires a lookup table on the u-blox side as the receiver reports it in time intervals rather than a direct value. 
-Feedback on the relevance of these three fields is welcome.
-
-- The enumeration entries `GNSS_JAMMING_STATE_NOT_JAMMED` and `GNSS_SPOOFING_STATE_NOT_SPOOFED` have been renamed to `GNSS_JAMMING_STATE_SPECTRUM_CLEAN` and `GNSS_SPOOFING_STATE_SPECTRUM_CLEAN`, respectively, to clarify that the receiver has not detected indicators of jamming or spoofing, rather than asserting a proven absence of such threats. In practice, most GNSS receivers do not prove the absence of jamming or spoofing because they only assess that the observed RF environment appears normal when no detection mechanisms have been triggered.
-These states are also reused for the per-band reports.
-
-- `GNSS_SPOOFING_STATE_MITIGATED` has been replaced by `GNSS_SPOOFING_STATE_AFFECTED` to avoid implying a clearly defined spoofing mitigation stage, since spoofing mitigation is not explicitly reported by receivers and corresponding countermeasures may operate across multiple internal receiver layers (hence the difficulty in reporting them). Instead, the new state indicates that receiver output (position or raw measurements) may be impacted by non-authentic GNSS signals. <br> For Septentrio, this mapping can be based on `RFStatus.Flags` Bit 0 (`SIG_AUTH_ALERT`), which indicates potential loss of signal authenticity and possible impact on receiver output based on built-in checks. Detection based solely on navigation message authentication (NMA) failure (`RFStatus.Flags` Bit 1, `NAV_MSG_AUTH_ALERT`) can be mapped to `GNSS_SPOOFING_STATE_DETECTED`. <br> For u-blox, spoofing is reported using "indicated" and "affirmed" detection levels, which may be mapped to `AFFECTED` depending on interpretation of internal receiver checks, or conservatively to `DETECTED` in both cases when ambiguity remains. <br> In both vendor implementations, future firmware updates may improve the separation between detection levels and output-impact indicators. In the current model, `GNSS_SPOOFING_STATE_DETECTED` represents a generic detection state, while `GNSS_SPOOFING_STATE_AFFECTED` is reserved for cases where receiver output is known or indicated to be impacted by non-authentic signals. Although this distinction is not perfectly aligned with current receiver internal states, introducing it increases long-term extensibility of the message.
-
-- The description of the `GNSS_AUTHENTICATION_STATE_OK` entry in the `authentication_state` field has been changed from *"The GNSS receiver has correctly authenticated all signals"* to *"GNSS signal authentication is operating normally"*. This field indicates the state of the receiver's authentication process (currently primarily OSNMA), rather than whether all received signals or navigation messages have been successfully authenticated. 
-Authentication failures are instead reflected by the `spoofing_state` field. <br> Renaming the `OK` entry to `OPERATIONAL`, `ENABLED`, `ACTIVE`, or `AUTHENTICATING` may also be worth considering. However, `OPERATIONAL` seems to be used by u-blox to indicate the availability of the OSNMA service (`UBX-SEC-OSNMA.nmaStatus`), while `ENABLED` and `ACTIVE` do not necessarily imply that authentication is functioning correctly. <br> Septentrio additionally reports which satellites (for Galileo and GPS only) transmitted unauthenticated navigation messages via the `GalAuthenticMask` and `GpsAuthenticMask` fields of the `GALAuthStatus` block. However, this level of detail is likely too specific to expose through MAVLink.
-
-The updated and new enumerations are defined in the [Updated and new enumerations](#updated-and-new-enumerations) section.
-
-Updated `GNSS_INTEGRITY` message:
+**Updated `GNSS_INTEGRITY` message:**
 ```xml
 <message id="441" name="GNSS_INTEGRITY">
     <description>Global integrity and resilience status for a GNSS receiver, like jamming and spoofing summary states, signal authentication and system errors. Per-band RF diagnostics are in GNSS_BANDS.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint32_t" name="system_errors" enum="GNSS_SYSTEM_ERROR_FLAGS">Bitmask of errors in the GPS system. Vendors set only the bits they can detect.</field>
+    <field type="uint32_t" name="system_errors" enum="GNSS_SYSTEM_ERROR_FLAGS">Bitmask of errors in the GNSS system. Vendors set only the bits they can detect.</field>
     <field type="uint8_t" name="antenna_state" enum="GNSS_ANTENNA_STATE">Status of the main antenna supervisor.</field>
     <field type="uint8_t" name="antenna_power" enum="GNSS_ANTENNA_POWER">Power state of the main antenna.</field>
+    <field type="uint8_t" name="cpu_load" units="%" invalid="UINT8_MAX">Receiver CPU load in percent.</field>
+    <field type="uint32_t" name="up_time" units="s" invalid="UINT32_MAX">Time elapsed since the startup or the last reset of the receiver.</field>
+    <field type="uint16_t" name="corrections_age" units="cs" invalid="UINT16_MAX">Age of the most recently applied differential corrections, in centiseconds (10ms units).</field>
     <field type="uint8_t" name="authentication_state" enum="GNSS_AUTHENTICATION_STATE">Signal authentication state of the GNSS system.</field>
     <field type="uint8_t" name="jamming_state" enum="GNSS_JAMMING_STATE">Signal jamming state of the GNSS system.</field>
     <field type="uint8_t" name="spoofing_state" enum="GNSS_SPOOFING_STATE">Signal spoofing state of the GNSS system.</field>
-    <field type="uint8_t" name="raim_state" enum="GNSS_RAIM_STATE">Status of the RAIM processing.</field>
-    <field type="uint16_t" name="raim_hfom" units="cm" invalid="UINT16_MAX">Horizontal expected accuracy using satellites successfully validated using RAIM.</field>
-    <field type="uint16_t" name="raim_vfom" units="cm" invalid="UINT16_MAX">Vertical expected accuracy using satellites successfully validated using RAIM.</field>
-    <field type="uint16_t" name="corrections_age" units="cs" invalid="UINT16_MAX">Age of the most recently applied differential corrections, in centiseconds (10ms units).</field>
-    <field type="uint8_t" name="cpu_load" units="%" invalid="UINT8_MAX">Receiver CPU load in percent.</field>
-    <field type="uint32_t" name="up_time" units="s" invalid="UINT32_MAX">Time elapsed since the startup or the last reset of the receiver.</field>
+    <field type="uint8_t" name="raim_state" enum="GNSS_RAIM_STATE">Status of the RAIM (Receiver Autonomous Integrity Monitoring) processing.</field>
+    <field type="uint16_t" name="raim_hpl" units="cm" invalid="UINT16_MAX">Horizontal Protection Level (HPL) representing a statistical upper bound on the horizontal position error.</field>
+    <field type="uint16_t" name="raim_vpl" units="cm" invalid="UINT16_MAX">Vertical Protection Level (VPL) representing a statistical upper bound on the vertical position error.</field>
 </message>
 ```
 
+**Field source mapping:**
 | Field | In previous `GNSS_INTEGRITY` | Septentrio source | u-blox source |
 |-------|--------------------------|------------------|---------------|
 | `system_errors` | Yes | `ReceiverStatus.RxError` + `ExtError` | `UBX-MON-RF.antStatus` indirectly |
 | `antenna_state` | No (only antenna error bit) | **Not directly available** (`RxError.ANTENNA` only reports overcurrent conditions, no SHORT/OPEN distinction) | `UBX-MON-RF.antStatus` (per band, then only the first block is read, no overcurrent reporting) |
 | `antenna_power` | No | **Not directly available** (`ReceiverStatus.RxState.ACTIVEANTENNA` is set when current is drawn from antenna connector, it does not distinguish passive antenna from powered-off active antenna) | `UBX-MON-RF.antPower` (per band, then only the first block is read) |
+| `cpu_load` | No | `ReceiverStatus.CPULoad` (%) | `UBX-MON-SYS.cpuLoad` (%) |
+| `up_time` | No | `ReceiverStatus.UpTime` (seconds) | `UBX-MON-SYS.runTime` (seconds) |
+| `corrections_age` | No | `PVTGeodetic.MeanCorrAge` (0.01 s, i.e. centiseconds) | `UBX-NAV-PVT.lastCorrectionAge` (4-bit encoded index into time interval ranges in seconds, lookup table needed) |
 | `authentication_state` | Yes | `GALAuthStatus.OSNMAStatus` | Multiple sources available: `UBX-SEC-OSNMA.osnmaEnabled` / `UBX-SEC-OSNMA.nmaStatus` / `UBX-SEC-OSNMA.dsmAuthenticationStatus` / `UBX-NAV-PVT.nmaFixStatus` |
 | `jamming_state` | Yes | `RFStatus.RFBand.Info.Mode` (per band, then we take the worst case) |  `UBX-SEC-SIG.jamState` (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) | 
 | `spoofing_state` | Yes | `RFStatus.Flags` bits 0-1 | `UBX-SEC-SIG.spfState` / `UBX-NAV-STATUS.spoofDetState` |
 | `raim_state` | Yes | `PVTGeodetic.AlertFlag` bits 0-1 | `UBX-TIM-TP.raim` |
-| `raim_hfom` | Yes | `DOP.HPL` | **Not directly available** (`UBX-NAV-PVT.hAcc` is not RAIM-specific) |
-| `raim_vfom` | Yes | `DOP.VPL` | **Not directly available** (`UBX-NAV-PVT.vAcc` is not RAIM-specific) |
-| `corrections_age` | No | `PVTGeodetic.MeanCorrAge` | `UBX-NAV-PVT.lastCorrectionAge` (lookup table needed) (`NAV-PVT.diffAge`: NMEA only) |
-| `cpu_load` | No | `ReceiverStatus.CPULoad` | `UBX-MON-SYS.cpuLoad`  |
-| `up_time` | No | `ReceiverStatus.UpTime` | `UBX-MON-SYS.runTime` |
+| `raim_hpl` | Yes | `DOP.HPL` (meters) | **Not directly available** (`UBX-NAV-PVT.hAcc` is not RAIM-specific) |
+| `raim_vpl` | Yes | `DOP.VPL` (meters) | **Not directly available** (`UBX-NAV-PVT.vAcc` is not RAIM-specific) |
+
+The updated and new enumerations are defined in the [Updated and new enumerations](#updated-and-new-enumerations) section. 
+
+Field types, units, and resolutions are mostly derived from the native output formats documented by the receivers, to avoid unnecessary precision loss in the driver mapping.
+
+Most of the original `GNSS_INTEGRITY` has been retained. The changes are as follows:
+
+- **Main antenna status and power have been added.** While both concepts are exposed by Septentrio and u-blox, the available diagnostics differ (in fault classification or power reporting, for example), so not all mappings can be provided for every vendor. More details are available in the related table. <br> Combining the status and power fields into a single one by adding an `OFF` entry to the `GNSS_ANTENNA_STATE` enumeration is also a possibility.
+
+- **Septentrio-specific quality indicators (0-10 scale) have been removed.**
+
+- **`cpu_load`, `up_time`, and `corrections_age` have been added with standard units**, to aid debugging. 
+Both Septentrio and u-blox expose these fields. However, `corrections_age` requires a lookup table on the u-blox side as the receiver reports it in time intervals rather than a direct value. 
+Feedback on the relevance of these three fields is welcome.
+
+- **The description of the `GNSS_AUTHENTICATION_STATE_OK` entry in the `authentication_state` field has been changed** from *"The GNSS receiver has correctly authenticated all signals"* to *"GNSS signal authentication is operating normally"*. This field indicates the state of the receiver's authentication process (currently primarily OSNMA), rather than whether all received signals or navigation messages have been successfully authenticated. 
+Authentication failures are instead reflected by the `spoofing_state` field. <br> Renaming the `OK` entry to `OPERATIONAL`, `ENABLED`, `ACTIVE`, or `AUTHENTICATING` may also be worth considering. However, `OPERATIONAL` seems to be used by u-blox to indicate the availability of the OSNMA service (`UBX-SEC-OSNMA.nmaStatus`), while `ENABLED` and `ACTIVE` do not necessarily imply that authentication is functioning correctly. <br> Septentrio additionally reports which satellites (for Galileo and GPS only) transmitted unauthenticated navigation messages via the `GalAuthenticMask` and `GpsAuthenticMask` fields of the `GALAuthStatus` block. However, this level of detail is likely too specific to expose through MAVLink.
+
+- **The enumeration entries `GNSS_JAMMING_STATE_NOT_JAMMED` and `GNSS_SPOOFING_STATE_NOT_SPOOFED` have been renamed to `GNSS_JAMMING_STATE_SPECTRUM_CLEAN` and `GNSS_SPOOFING_STATE_SPECTRUM_CLEAN`**, respectively, to clarify that the receiver has not detected indicators of jamming or spoofing, rather than asserting a proven absence of such threats. In practice, most GNSS receivers do not prove the absence of jamming or spoofing because they only assess that the observed RF environment appears normal when no detection mechanisms have been triggered.
+These states are also reused for the per-band reports.
+
+- **`GNSS_SPOOFING_STATE_MITIGATED` has been replaced by `GNSS_SPOOFING_STATE_AFFECTED`** to avoid implying a clearly defined spoofing mitigation stage, since spoofing mitigation is not explicitly reported by receivers and corresponding countermeasures may operate across multiple internal receiver layers (hence the difficulty in reporting them). Instead, the new state indicates that receiver output (position or raw measurements) may be impacted by non-authentic GNSS signals. <br> For Septentrio, this mapping can be based on `RFStatus.Flags` Bit 0 (`SIG_AUTH_ALERT`), which indicates potential loss of signal authenticity and possible impact on receiver output based on built-in checks. Detection based solely on navigation message authentication (NMA) failure (`RFStatus.Flags` Bit 1, `NAV_MSG_AUTH_ALERT`) can be mapped to `GNSS_SPOOFING_STATE_DETECTED`. <br> For u-blox, spoofing is reported using "indicated" and "affirmed" detection levels, which may be mapped to `AFFECTED` depending on interpretation of internal receiver checks, or conservatively to `DETECTED` in both cases when ambiguity remains. <br> In both vendor implementations, future firmware updates may improve the separation between detection levels and output-impact indicators. In the current model, `GNSS_SPOOFING_STATE_DETECTED` represents a generic detection state, while `GNSS_SPOOFING_STATE_AFFECTED` is reserved for cases where receiver output is known or indicated to be impacted by non-authentic signals. Although this distinction is not perfectly aligned with current receiver internal states, introducing it increases long-term extensibility of the message.
+
+- **`raim_hfom` and `raim_vfom` have been renamed to `raim_hpl` and `raim_vpl` respectively**, and their descriptions updated accordingly. [RAIM (Receiver Autonomous Integrity Monitoring)](https://gssc.esa.int/navipedia/index.php/RAIM) is a technique that uses redundancy among tracked satellites to detect and isolate faulty measurements, and to compute protection levels from the remaining consistent set. These protection levels, HPL and VPL, are statistical upper bounds on the horizontal and vertical position error, not accuracy estimates (in SBAS-aided mode, for example, they are derived from SBAS error estimates instead). The original field names (`hfom`, `vfom`) and descriptions ("expected accuracy") incorrectly implied an accuracy metric rather than an integrity bound. The new names follow the DO-229 standard terminology, as used in the Septentrio receiver documentation. <br> Both fields are encoded as `uint16_t` in centimeters, giving a maximum representable value of 655.34 m. This is considered sufficient, as the Horizontal and Vertical Alert Limits (HAL/VAL) for non-precision approach navigation are 556 m (0.3 nm) and 50 m respectively according to the [NovAtel OEM7 documentation](https://docs.novatel.com/OEM7/Content/PDFs/OEM7_Commands_Logs_Manual.pdf), meaning protection levels above this range already indicate that integrity requirements cannot be met.
 
 ## New per-band RF diagnostics
 
 A new message, `GNSS_BANDS`, has been introduced to provide per-band interference visibility. The main goal is to give operators insight into which individual frequency bands are affected by jamming and whether the receiver is mitigating it.
 
-Two approaches were considered:
-
-- Use the jamming indicators computed by the receivers themselves (the same ones used for `GNSS_INTEGRITY`), but resolved per frequency band block. Specifically, these are `RFStatus.RFBand` for Septentrio and `UBX-SEC-SIG.jamStateCentFreq` for u-blox. Both provide the center frequency of the affected band and indicate whether it is jammed, based on the receiver's internal algorithms. Septentrio additionally exposes mitigation information: whether the band was suppressed manually, automatically, or left unmitigated.
-
-- Supplement or replace this with raw front-end values (noise floor, AGC level, CW jamming level, and I/Q imbalance and magnitude), to allow operators to interpret results themselves. 
-However, this data is exposed only by u-blox, and in a different message (`UBX-MON-RF`) from the one that contains the per-band jamming status. That message previously included a per-block jamming status field, but this has since been deprecated in protocol versions that support `UBX-SEC-SIG`, making it difficult to correlate the two sources reliably.
-
-The proposal here is to retain only what is strictly necessary to take action or conduct post-flight investigation: which frequency is affected, whether jamming is present, and whether the receiver is mitigating it.
-
-This keeps the message user-friendly, avoids populating fields that will be empty for half of all deployments, and limits payload size. It also has the advantage that all required data comes from a single receiver output, which greatly simplifies aggregation at the flight controller level. In addition, using the center frequency rather than a band identifier (L1, L2, etc.) is more future-proof. If needed, the ground station can handle the frequency-to-band mapping.
-
-The interference characteristics (bandwidth and power) per band are not included in the minimal message, as they are not available from u-blox. However, they are available from Septentrio and may be worth including, since they are expressed in standard units. This option is presented in the [Alternatives](#alternatives) section, along with the raw front-end fields mentioned above.
-
 The proposed structure stores the information for all reported bands in a single `GNSS_BANDS` message. The `band_count` field indicates the number of frequency bands contained in the arrays below. Each field is therefore defined as a static array of size `GNSS_MAX_BANDS` (not yet defined), with the same index referring to the same reported band across all arrays. This avoids the overhead of multiple small messages while keeping the message structure simple for flight controller implementations. The choice of this structure is further discussed and justified in the [Intended message overhead](#intended-message-overhead) section.
 
-Minimal `GNSS_BANDS` message:
+**Minimal `GNSS_BANDS` message:**
 ```xml
 <message id="442" name="GNSS_BANDS">
     <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
@@ -177,12 +169,27 @@ Minimal `GNSS_BANDS` message:
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
 </message>
 ```
+
+**Field source mapping:**
 | Field | In previous `GNSS_INTEGRITY` | Septentrio source | u-blox source |
 |-------|--------------------------|------------------|---------------|
 | `band_count` | No | `RFStatus.N` | `UBX-SEC-SIG.jamNumCentFreqs` |
-| `frequency` | No | `RFStatus.RFBand.Frequency` | `UBX-SEC-SIG.jamStateCentFreq.centFreq` |
+| `frequency` | No | `RFStatus.RFBand.Frequency` (Hz) | `UBX-SEC-SIG.jamStateCentFreq.centFreq` (kHz) |
 | `band_jamming_state` | Yes (but not per-band) | `RFStatus.RFBand.Info.Mode` | `UBX-SEC-SIG.jamStateCentFreq.jammed`  |
 | `band_mitigation_state` | No | `RFStatus.RFBand.Info.Mode` bits 0-3 | **Not available** (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
+
+Two approaches were considered when defining `GNSS_BANDS`:
+
+- **Use the jamming indicators computed by the receivers themselves** (the same ones used for `GNSS_INTEGRITY`), but resolved per frequency band block. Specifically, these are `RFStatus.RFBand` for Septentrio and `UBX-SEC-SIG.jamStateCentFreq` for u-blox. Both provide the center frequency of the affected band and indicate whether it is jammed, based on the receiver's internal algorithms. Septentrio additionally exposes mitigation information: whether the band was suppressed manually, automatically, or left unmitigated.
+
+- **Supplement or replace this with raw front-end values** (noise floor, AGC level, CW jamming level, and I/Q imbalance and magnitude), to allow operators to interpret results themselves. 
+However, this data is exposed only by u-blox, and in a different message (`UBX-MON-RF`) from the one that contains the per-band jamming status. That message previously included a per-block jamming status field, but this has since been deprecated in protocol versions that support `UBX-SEC-SIG`, making it difficult to correlate the two sources reliably.
+
+The proposal here is to retain only what is strictly necessary to take action or conduct post-flight investigation: **which frequency is affected, whether jamming is present, and whether the receiver is mitigating it.**
+
+This keeps the message user-friendly, avoids populating fields that will be empty for half of all deployments, and limits payload size. It also has the advantage that all required data comes from a single receiver output, which greatly simplifies aggregation at the flight controller level. In addition, using the center frequency rather than a band identifier (L1, L2, etc.) is more future-proof. If needed, the ground station can handle the frequency-to-band mapping.
+
+The interference characteristics (bandwidth and power) per band are not included in the minimal message, as they are not available from u-blox. However, they are available from Septentrio and may be worth including, since they are expressed in standard units. This option is presented in the [Alternatives](#alternatives) section, along with the raw front-end fields mentioned above.
 
 ## Updated and new enumerations 
 
@@ -422,21 +429,22 @@ A global field mapping table summarizing the source availability for all alterna
 | Field | In previous `GNSS_INTEGRITY` | Included in Alternative(s) | Septentrio source | u-blox source |
 |-------|--------------------------|-------------|------------------|---------------|
 | `band_count` | No | 1, 2, 3 | `RFStatus.N` | `UBX-SEC-SIG.jamNumCentFreqs` |
-| `frequency` | No | 1, 2, 3 | `RFStatus.RFBand.Frequency` | `UBX-SEC-SIG.jamStateCentFreq.centFreq` |
+| `frequency` | No | 1, 2, 3 | `RFStatus.RFBand.Frequency` (Hz) | `UBX-SEC-SIG.jamStateCentFreq.centFreq` (kHz) |
 | `band_id` | No | 3 | **Not available** | `UBX-MON-RF.blockId` |
 | `band_jamming_state` | Yes (but not per-band) | 1, 2, 3 | `RFStatus.RFBand.Info.Mode` | `UBX-SEC-SIG.jamStateCentFreq.jammed` |
 | `band_mitigation_state` | No | 1, 2, 3 | `RFStatus.RFBand.Info.Mode` bits 0-3 | **Not available** (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
 | `interference_bandwidth` | No | 1, 2, 3 | `RFStatus.RFBand.Bandwidth` (kHz) | **Not available** |
 | `interference_power` | No | 1, 2, 3 | `RFStatus.RFBand.Power` (dBm) | **Not available** |
 | `noise_floor` | No | 3 | **Not available** | `UBX-MON-RF.noisePerMS` |
-| `agc_count` | No | 3 | **Not available** (Gain available in `ReceiverStatus.AGCState.Gain`, expressed in dB) | `UBX-MON-RF.agcCnt` |
-| `cw_jamming_level` | No | 3 | **Not available** | `UBX-MON-RF.cwSuppression` |
-| `ofs_i`, `mag_i`, `ofs_q`, `mag_q` | No | 3 | **Not available** | `UBX-MON-RF` |
+| `agc_count` | No | 3 | **Not available** (Gain available in `ReceiverStatus.AGCState.Gain`, expressed in dB) | `UBX-MON-RF.agcCnt` (%) |
+| `cw_jamming_level` | No | 3 | **Not available** | `UBX-MON-RF.cwSuppression` (0=no CW jamming, 255=strong CW jamming) |
+| `ofs_i`, `ofs_q` | No | 3 | **Not available** | `UBX-MON-RF` (-128 = max. negative imbalance, 127 = max. positive imbalance) |
+| `mag_i`, `mag_q` | No | 3 | **Not available** | `UBX-MON-RF` (0 = no signal, 255 = max.magnitude) |
 | `band_antenna_state` | No | 3 | Global antenna diagnostics only | `UBX-MON-RF.antStatus` |
 | `band_antenna_power` | No | 3 | Global antenna diagnostics only | `UBX-MON-RF.antPower` |
 | `band_spoofing_state` | No | 2 | **Not available** | **Not available** |
 
-**Bandwidth impact of the proposed and alternative `GNSS_BANDS` designs (three reported bands, 1 Hz transmission):**
+**Bandwidth impact of the proposed and alternative `GNSS_BANDS` designs (3 reported bands, 1 Hz transmission):**
 | Message design | Payload size (bytes) | Total size (bytes) | Rate | Bandwidth (bytes/sec) | Increase compared with minimal message |
 | --------------- | ------------------------------ | ------------------ | --------- | --------------------- | -------------------------------------- |
 | Minimal `GNSS_BANDS` | 20 | 32 | 1 Hz | 32 | - |
@@ -448,7 +456,7 @@ A global field mapping table summarizing the source availability for all alterna
 
 NovAtel OEM7 outputs were examined as a secondary reference to assess whether the proposed fields generalise beyond Septentrio and u-blox. The key findings are as follows:
 - **System errors, receiver status, and antenna status/power monitoring** map directly from the `RXSTATUS` log, which exposes structured status and error words, including bits 3-6 for antenna-related conditions (power, LNA, open circuit, short circuit).
-- **RAIM state and protection levels** map directly from the `RAIMSTATUS` log, which exposes an integrity status field (`NOT_AVAILABLE` / `PASS` / `FAIL`) and explicit HPL and VPL values in metres. 
+- **RAIM state and protection levels** map directly from the `RAIMSTATUS` log, which exposes an integrity status field (`NOT_AVAILABLE` / `PASS` / `FAIL`) and explicit Horizontal and Vertical Protection Level (HPL/VPL) values in meters. 
 - **Corrections age** maps directly from `BESTPOS.diff_age`, expressed in seconds.
 - `cpu_load`, `up_time`, and `authentication_state` have no NovAtel equivalent.
 - **Jamming and spoofing status indicators** are available, but with less granularity than that of the proposed enumeration. `RXSTATUS` provides a single global bit for jamming detection (bit 15) and a single bit for spoofing detection (bit 9), with no attenuation status or distinction between detection levels.
@@ -459,7 +467,9 @@ Given the consistency of interference-related characteristics across Septentrio 
 
 ## Septentrio quality indicators
 
-To prevent Septentrio users from losing information previously transmitted by `GNSS_INTEGRITY`, a dedicated message could also be defined to carry Septentrio's quality indicators, preserving the four fields that were removed from the new `GNSS_INTEGRITY`. While they cannot be populated by other vendors, they provide a simple and immediately readable health summary that is useful for ground station displays and operator situational awareness. This message could be optional, for example.
+To prevent Septentrio users from losing information previously transmitted by `GNSS_INTEGRITY`, a dedicated message could also be defined to carry Septentrio-specific quality indicators, preserving the four fields that were removed from the new `GNSS_INTEGRITY`. While they cannot be populated by other vendors, they provide a simple and immediately readable health summary that is useful for ground station displays and operator situational awareness. This message could be optional, for example.
+
+**Proposed `GNSS_SEPT_QUALITY` message:**
 ```xml
 <message id="450" name="GNSS_SEPT_QUALITY">
     <description>Quality indicators for Septentrio GNSS receivers.</description>
@@ -470,6 +480,8 @@ To prevent Septentrio users from losing information previously transmitted by `G
     <field type="uint8_t" name="post_processing_quality" minValue="0" maxValue="10" invalid="UINT8_MAX">Septentrio-scale value representing the quality of RTK post-processing, or 255 if not available.</field>
 </message>
 ```
+
+**Field source mapping:**
 | Field | In previous `GNSS_INTEGRITY` | Septentrio source | u-blox source |
 |-------|--------------------------|------------------|---------------|
 | `corrections_quality` | Yes | `QualityInd` type 30 (0-10) | No equivalent |
