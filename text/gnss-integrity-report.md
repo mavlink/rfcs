@@ -3,7 +3,9 @@
 
 # Summary
 
-This RFC proposes restructuring the `GNSS_INTEGRITY` message into two separate messages. One provides resilience and integrity information global to a GNSS receiver. The other provides RF interference diagnostics per frequency band. The goal for both messages is to be as generic and vendor-agnostic as possible.
+This RFC proposes restructuring the work-in-progress [`GNSS_INTEGRITY`](https://mavlink.io/en/messages/development.html#GNSS_INTEGRITY) message into two separate messages.
+The first message is to provide resilience and integrity information for the whole GNSS receiver, while the other provides RF interference diagnostics per frequency band.
+The goal for both messages is to be as generic and vendor-agnostic as possible.
 
 # Motivation 
 
@@ -14,6 +16,9 @@ A secondary goal is to make both messages as future-proof as possible. This requ
 By contrast, if a field uses a concrete, standard unit (Hz, seconds, etc.) or maps to an explicit enumeration (detected, not detected, mitigated, etc.), it can remain unpopulated today and be filled in transparently when either a receiver firmware update exposes the data or a driver is updated to parse it. In both cases, the protocol will remain unchanged. 
 
 However, there are cases where vendor-specific data genuinely aids diagnostics with a more user-friendly approach. Septentrio's quality indicators are one example: they present complex receiver health metrics as a simple 0-10 scale, similar to how a phone displays signal strength or battery level. One option would be a dedicated, and potentially optional, vendor extension message carrying this kind of data, keeping the main integrity messages vendor-agnostic. This remains an open design question. A proposal is presented in the [Alternatives](#alternatives) section. 
+
+
+## Original Design
 
 For reference, the original `GNSS_INTEGRITY` message, as defined in `development.xml`, is as follows:
 ```xml
