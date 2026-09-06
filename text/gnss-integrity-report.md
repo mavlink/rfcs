@@ -102,7 +102,7 @@ Additionally, all relevant fields and enumerations have been renamed by replacin
     <field type="uint8_t" name="antenna_power" enum="GNSS_ANTENNA_POWER">Power state of the main antenna.</field>
     <field type="uint8_t" name="cpu_load" units="%" invalid="UINT8_MAX">Receiver CPU load in percent.</field>
     <field type="uint32_t" name="up_time" units="s" invalid="UINT32_MAX">Time elapsed since the startup or the last reset of the receiver.</field>
-    <field type="uint16_t" name="corrections_age" units="cs" invalid="UINT16_MAX">Age of the most recently applied differential corrections, in centiseconds (10ms units).</field>
+    <field type="uint16_t" name="corrections_age" units="cs" invalid="UINT16_MAX">Age of the most recently applied differential corrections, in centiseconds (10ms units). For receivers that report correction age in coarse range bins, implementations must report the lower bound edge of the range bin in centiseconds.</field>
     <field type="uint8_t" name="authentication_state" enum="GNSS_AUTHENTICATION_STATE">Signal authentication state of the GNSS system.</field>
     <field type="uint8_t" name="jamming_state" enum="GNSS_JAMMING_STATE">Signal jamming state of the GNSS system.</field>
     <field type="uint8_t" name="spoofing_state" enum="GNSS_SPOOFING_STATE">Signal spoofing state of the GNSS system.</field>
@@ -115,7 +115,7 @@ Additionally, all relevant fields and enumerations have been renamed by replacin
 **Field source mapping:**
 | Field | In previous `GNSS_INTEGRITY` | Septentrio source | u-blox source |
 |-------|--------------------------|------------------|---------------|
-| `system_errors` | Yes | `ReceiverStatus.RxError` + `ExtError` | `UBX-MON-RF.antStatus` indirectly |
+| `system_errors` | Yes | `ReceiverStatus.RxError` + `ExtError` | `UBX-MON-RF.antStatus` + `UBX-MON-SYS` (`errorCount`, `warnCount`) |
 | `antenna_state` | No (only antenna error bit) | **Not directly available** (`RxError.ANTENNA` only reports overcurrent conditions, no SHORT/OPEN distinction) | `UBX-MON-RF.antStatus` (per band, then only the first block is read, no overcurrent reporting) |
 | `antenna_power` | No | **Not directly available** (`ReceiverStatus.RxState.ACTIVEANTENNA` is set when current is drawn from antenna connector, it does not distinguish passive antenna from powered-off active antenna) | `UBX-MON-RF.antPower` (per band, then only the first block is read) |
 | `cpu_load` | No | `ReceiverStatus.CPULoad` (%) | `UBX-MON-SYS.cpuLoad` (%) |
@@ -124,7 +124,7 @@ Additionally, all relevant fields and enumerations have been renamed by replacin
 | `authentication_state` | Yes | `GALAuthStatus.OSNMAStatus` | Multiple sources available: `UBX-SEC-OSNMA.osnmaEnabled` / `UBX-SEC-OSNMA.nmaStatus` / `UBX-SEC-OSNMA.dsmAuthenticationStatus` / `UBX-NAV-PVT.nmaFixStatus` |
 | `jamming_state` | Yes | `RFStatus.RFBand.Info.Mode` (per band, then we take the worst case) |  `UBX-SEC-SIG.jamState` (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) | 
 | `spoofing_state` | Yes | `RFStatus.Flags` bits 0-1 | `UBX-SEC-SIG.spfState` / `UBX-NAV-STATUS.spoofDetState` |
-| `raim_state` | Yes | `PVTGeodetic.AlertFlag` bits 0-1 | `UBX-TIM-TP.raim` |
+| `raim_state` | Yes | `PVTGeodetic.AlertFlag` bits 0-1 | **Not directly available** (`UBX-TIM-TP.raim` is T-RAIM for time pulse only, position RAIM fields should be left invalid) |
 | `raim_hpl` | Yes | `DOP.HPL` (meters) | **Not directly available** (`UBX-NAV-PVT.hAcc` is not RAIM-specific) |
 | `raim_vpl` | Yes | `DOP.VPL` (meters) | **Not directly available** (`UBX-NAV-PVT.vAcc` is not RAIM-specific) |
 
@@ -142,8 +142,9 @@ Most of the original `GNSS_INTEGRITY` has been retained. The changes are as foll
 Both Septentrio and u-blox expose these fields. However, `corrections_age` requires a lookup table on the u-blox side as the receiver reports it in time intervals rather than a direct value. 
 Feedback on the relevance of these three fields is welcome.
 
-- **The description of the `GNSS_AUTHENTICATION_STATE_OK` entry in the `authentication_state` field has been changed** from *"The GNSS receiver has correctly authenticated all signals"* to *"GNSS signal authentication is operating normally"*. This field indicates the state of the receiver's authentication process (currently primarily OSNMA), rather than whether all received signals or navigation messages have been successfully authenticated. 
-Authentication failures are instead reflected by the `spoofing_state` field. <br> Renaming the `OK` entry to `OPERATIONAL`, `ENABLED`, `ACTIVE`, or `AUTHENTICATING` may also be worth considering. However, `OPERATIONAL` seems to be used by u-blox to indicate the availability of the OSNMA service (`UBX-SEC-OSNMA.nmaStatus`), while `ENABLED` and `ACTIVE` do not necessarily imply that authentication is functioning correctly. <br> Septentrio additionally reports which satellites (for Galileo and GPS only) transmitted unauthenticated navigation messages via the `GalAuthenticMask` and `GpsAuthenticMask` fields of the `GALAuthStatus` block. However, this level of detail is likely too specific to expose through MAVLink.
+- **The enumeration entry `GNSS_AUTHENTICATION_STATE_OK` has been renamed to `GNSS_AUTHENTICATION_STATE_AUTHENTICATING`** and the description updated to clarify that the receiver is currently running signal authentication, rather than asserting that all received signals have been successfully authenticated. The new name better reflects the current state of the receiver's authentication process (currently primarily OSNMA), while authentication failures are instead reflected by the `spoofing_state` field. <br> Renaming the `OK` entry to `OPERATIONAL`, `ENABLED`, or `ACTIVE` may also be worth considering. However, `OPERATIONAL` seems to be used by u-blox to indicate the availability of the OSNMA service (`UBX-SEC-OSNMA.nmaStatus`), while `ENABLED` and `ACTIVE` do not necessarily imply that authentication is functioning correctly. 
+
+- **The enumeration entry `GNSS_AUTHENTICATION_STATE_AUTHENTICATED` has been added** to indicate that the current navigation solution has been successfully verified. This is primarily relevant for OSNMA, where the receiver can verify that the navigation solution is based on authentic signals. <br> Septentrio additionally reports which satellites (for Galileo and GPS only) transmitted authenticated navigation messages via the `GalAuthenticMask` and `GpsAuthenticMask` fields of the `GALAuthStatus` block. However, this level of detail is likely too specific to expose through MAVLink.
 
 - **The enumeration entries `GNSS_JAMMING_STATE_NOT_JAMMED` and `GNSS_SPOOFING_STATE_NOT_SPOOFED` have been renamed to `GNSS_JAMMING_STATE_SPECTRUM_CLEAN` and `GNSS_SPOOFING_STATE_SPECTRUM_CLEAN`**, respectively, to clarify that the receiver has not detected indicators of jamming or spoofing, rather than asserting a proven absence of such threats. In practice, most GNSS receivers do not prove the absence of jamming or spoofing because they only assess that the observed RF environment appears normal when no detection mechanisms have been triggered.
 These states are also reused for the per-band reports.
@@ -161,10 +162,10 @@ The proposed structure stores the information for all reported bands in a single
 **Minimal `GNSS_BANDS` message:**
 ```xml
 <message id="442" name="GNSS_BANDS">
-    <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
+    <description>Per-band RF diagnostics for a GNSS receiver, reporting individual center frequencies. Global resilience states are in GNSS_INTEGRITY. Unused array entries are zero-filled to enable MAVLink 2 payload truncation.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
-    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
+    <field type="uint8_t" name="band_count">Number of active center frequency entries reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each reported band/signal in Hz. Downstream consumers derive the corresponding RF band (e.g., L1/L2/L5). Unused entries must be zero-filled.</field>
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
 </message>
@@ -176,7 +177,7 @@ The proposed structure stores the information for all reported bands in a single
 | `band_count` | No | `RFStatus.N` | `UBX-SEC-SIG.jamNumCentFreqs` |
 | `frequency` | No | `RFStatus.RFBand.Frequency` (Hz) | `UBX-SEC-SIG.jamStateCentFreq.centFreq` (kHz) |
 | `band_jamming_state` | Yes (but not per-band) | `RFStatus.RFBand.Info.Mode` | `UBX-SEC-SIG.jamStateCentFreq.jammed`  |
-| `band_mitigation_state` | No | `RFStatus.RFBand.Info.Mode` bits 0-3 | **Not available** (`UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
+| `band_mitigation_state` | No | `RFStatus.RFBand.Info.Mode` bits 0-3 | `UBX-MON-RF.cwSuppression` (mapped per RF block, populating `CANCELLED` when active, `UBX-MON-RF.jammingState` deprecated in protocol versions that support `UBX-SEC-SIG`) |
 
 Two approaches were considered when defining `GNSS_BANDS`:
 
@@ -214,8 +215,9 @@ The interference characteristics (bandwidth and power) per band are not included
     <entry value="0" name="GNSS_AUTHENTICATION_STATE_UNKNOWN"><description>The GNSS receiver does not provide GNSS signal authentication information.</description></entry>
     <entry value="1" name="GNSS_AUTHENTICATION_STATE_INITIALIZING"><description>The GNSS receiver is initializing signal authentication.</description></entry>
     <entry value="2" name="GNSS_AUTHENTICATION_STATE_ERROR"><description>The GNSS receiver encountered an error while initializing signal authentication.</description></entry>
-    <entry value="3" name="GNSS_AUTHENTICATION_STATE_OK"><description>GNSS signal authentication is operating normally.</description></entry>
+    <entry value="3" name="GNSS_AUTHENTICATION_STATE_AUTHENTICATING"><description>GNSS signal authentication is running, but the current navigation solution is not necessarily verified.</description></entry>
     <entry value="4" name="GNSS_AUTHENTICATION_STATE_DISABLED"><description>GNSS signal authentication is disabled on the receiver.</description></entry>
+    <entry value="5" name="GNSS_AUTHENTICATION_STATE_AUTHENTICATED"><description>Current navigation solution has been successfully verified.</description></entry>
 </enum>
 <enum name="GNSS_SPOOFING_STATE">
     <description>Signal spoofing state in a GNSS receiver.</description>
@@ -228,8 +230,8 @@ The interference characteristics (bandwidth and power) per band are not included
     <description>Signal jamming state in a GNSS receiver.</description>
     <entry value="0" name="GNSS_JAMMING_STATE_UNKNOWN"><description>The GNSS receiver does not provide GNSS signal jamming information.</description></entry>
     <entry value="1" name="GNSS_JAMMING_STATE_SPECTRUM_CLEAN"><description>No signal jamming indicators have been detected by the GNSS receiver.</description></entry>
-    <entry value="2" name="GNSS_JAMMING_STATE_DETECTED"><description>Signal jamming indicators have been detected by the GNSS receiver.</description></entry>
-    <entry value="3" name="GNSS_JAMMING_STATE_MITIGATED"><description>Signal jamming has been detected and active mitigation is applied by the receiver.</description></entry>
+    <entry value="2" name="GNSS_JAMMING_STATE_MITIGATED"><description>Signal jamming has been detected and active mitigation is applied by the receiver.</description></entry>
+    <entry value="3" name="GNSS_JAMMING_STATE_DETECTED"><description>Signal jamming indicators have been detected by the GNSS receiver.</description></entry>
 </enum>
 <enum name="GNSS_JAMMING_MITIGATION_STATE">
     <description>Per-band jamming mitigation state reported by a GNSS receiver. Indicates whether detected interference is being actively mitigated, and by what mechanism.</description>
@@ -304,10 +306,10 @@ Bandwidth analysis (3 reported bands, 1 Hz):
 **Option 2: Single multi-band array message**
 ```xml
 <message id="442" name="GNSS_BANDS">
-    <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
+    <description>Per-band RF diagnostics for a GNSS receiver, reporting individual center frequencies. Global resilience states are in GNSS_INTEGRITY. Unused array entries are zero-filled to enable MAVLink 2 payload truncation.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
-    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
+    <field type="uint8_t" name="band_count">Number of active center frequency entries reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each reported band/signal in Hz. Downstream consumers derive the corresponding RF band (e.g., L1/L2/L5). Unused entries must be zero-filled.</field>
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
 </message>
@@ -371,10 +373,10 @@ A global field mapping table summarizing the source availability for all alterna
 **Alternative 1: `GNSS_BANDS` with interference characteristics**
 ```xml
 <message id="442" name="GNSS_BANDS">
-    <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
+    <description>Per-band RF diagnostics for a GNSS receiver, reporting individual center frequencies. Global resilience states are in GNSS_INTEGRITY. Unused array entries are zero-filled to enable MAVLink 2 payload truncation.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
-    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
+    <field type="uint8_t" name="band_count">Number of active center frequency entries reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each reported band/signal in Hz. Downstream consumers derive the corresponding RF band (e.g., L1/L2/L5). Unused entries must be zero-filled.</field>
     <field type="uint16_t[GNSS_MAX_BANDS]" name="interference_bandwidth" units="kHz" invalid="[UINT16_MAX]">Bandwidth of detected interference in each band (kHz). 0 for pulsed interference.</field>
     <field type="int8_t[GNSS_MAX_BANDS]" name="interference_power" units="dBm" invalid="[INT8_MIN]">Estimated interference power in each band (dBm). 0 if not estimable or manual notch filter.</field>
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
@@ -385,10 +387,10 @@ A global field mapping table summarizing the source availability for all alterna
 **Alternative 2: `GNSS_BANDS` extended with per-band spoofing state**
 ```xml
 <message id="442" name="GNSS_BANDS">
-    <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
+    <description>Per-band RF diagnostics for a GNSS receiver, reporting individual center frequencies. Global resilience states are in GNSS_INTEGRITY. Unused array entries are zero-filled to enable MAVLink 2 payload truncation.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
-    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known (could be mapped to a frequency band).</field>
+    <field type="uint8_t" name="band_count">Number of active center frequency entries reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each reported band/signal in Hz. Downstream consumers derive the corresponding RF band (e.g., L1/L2/L5). Unused entries must be zero-filled.</field>
     <field type="uint16_t[GNSS_MAX_BANDS]" name="interference_bandwidth" units="kHz" invalid="[UINT16_MAX]">Bandwidth of detected interference in each band (kHz). 0 for pulsed interference.</field>
     <field type="int8_t[GNSS_MAX_BANDS]" name="interference_power" units="dBm" invalid="[INT8_MIN]">Estimated interference power in each band (dBm). 0 if not estimable or manual notch filter.</field>
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
@@ -400,10 +402,10 @@ A global field mapping table summarizing the source availability for all alterna
 **Alternative 3: `GNSS_BANDS` including all jamming- and antenna-related per-band fields**
 ```xml
 <message id="442" name="GNSS_BANDS">
-    <description>Per-band RF front-end diagnostics for a GNSS receiver. Sent once per RF front-end / frequency band. Global resilience states are in GNSS_INTEGRITY.</description>
+    <description>Per-band RF diagnostics for a GNSS receiver, reporting individual center frequencies. Global resilience states are in GNSS_INTEGRITY. Unused array entries are zero-filled to enable MAVLink 2 payload truncation.</description>
     <field type="uint8_t" name="id" instance="true">GNSS receiver id. Must match instance ids of other messages from same receiver.</field>
-    <field type="uint8_t" name="band_count">Number of active RF bands reported in the arrays below.</field>
-    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each RF band in Hz. 0 if not known.</field>
+    <field type="uint8_t" name="band_count">Number of active center frequency entries reported in the arrays below.</field>
+    <field type="uint32_t[GNSS_MAX_BANDS]" name="frequency" units="Hz" invalid="[0]">Center frequency of each reported band/signal in Hz. Downstream consumers derive the corresponding RF band (e.g., L1/L2/L5). Unused entries must be zero-filled.</field>
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_id">RF band id.</field>
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_jamming_state" enum="GNSS_JAMMING_STATE">Per-band jamming state.</field>
     <field type="uint8_t[GNSS_MAX_BANDS]" name="band_mitigation_state" enum="GNSS_JAMMING_MITIGATION_STATE">Per-band jamming mitigation state.</field>
@@ -442,7 +444,7 @@ A global field mapping table summarizing the source availability for all alterna
 | `mag_i`, `mag_q` | No | 3 | **Not available** | `UBX-MON-RF` (0 = no signal, 255 = max.magnitude) |
 | `band_antenna_state` | No | 3 | Global antenna diagnostics only | `UBX-MON-RF.antStatus` |
 | `band_antenna_power` | No | 3 | Global antenna diagnostics only | `UBX-MON-RF.antPower` |
-| `band_spoofing_state` | No | 2 | **Not available** | **Not available** |
+| `band_spoofing_state` | No | 2 | **Not available** | **Not available** (`UBX-NAV-SIG.authStatus` provides OSNMA authentication status for each signal tracked or searched by the receiver, but not spoofing status) |
 
 **Bandwidth impact of the proposed and alternative `GNSS_BANDS` designs (3 reported bands, 1 Hz transmission):**
 | Message design | Payload size (bytes) | Total size (bytes) | Rate | Bandwidth (bytes/sec) | Increase compared with minimal message |
@@ -498,10 +500,9 @@ The following questions remain open:
 - Are all the fields added to `GNSS_INTEGRITY` relevant? In particular, is `up_time` worth the 4 bytes it occupies, or would other metrics provide more value?
 - Should `antenna_state` and `antenna_power` remain two separate fields, or be merged into a single field by adding an `OFF` entry to `GNSS_ANTENNA_STATE`? Are all states currently defined in `GNSS_ANTENNA_STATE` relevant, given the different mappings available across vendors?
 - Is it useful to distinguish between spoofing detection alone and the indication that receiver output (position or raw measurements) may be affected by spoofing in `GNSS_SPOOFING_STATE`, even if the currently available receiver fields are not perfectly aligned with this distinction? This topic has been discussed in parallel with Septentrio, which shares the objective of improving the link between spoofing detection and its impact on receiver output, and is continuing development in this direction.
-- Should the `GNSS_AUTHENTICATION_STATE_OK` entry be renamed to `OPERATIONAL`, `ENABLED`, `ACTIVE`, or `AUTHENTICATING`?
 - Is representing all reported bands in a single `GNSS_BANDS` message, with each per-band field defined as an array, the best approach, given that the number of available bands is dynamic (and may be zero)? If so, what should be the maximum array size (`GNSS_MAX_BANDS`) to limit the transfer of unused fields while ensuring that all relevant bands can be reported?
 - Do operators need raw per-band RF front-end diagnostics in MAVLink, at the cost of reduced bandwidth efficiency and vendor agnosticism, or are the processed jamming and mitigation states sufficient? Are interference bandwidth and interference power worth including, given that they are currently not available from u-blox but are expressed in standard units (kHz and dBm, respectively)?
-- Should a field for per-band spoofing detection be added speculatively to `GNSS_BANDS`, even though no vendor currently provides this information and this would extend the scope of the message beyond interference reporting?
+- Should a field for per-band spoofing detection be added speculatively to `GNSS_BANDS`, even though no vendor currently provides this information and this would extend the scope of the message beyond interference reporting? Alternatively, should a per-band authentication state be added instead, even though it is currently provided by u-blox for each signal via `UBX-NAV-SIG.authStatus`, a different message than the one used for jamming detection, while Septentrio provides authentication status at the individual satellite level via bitmasks (`GalAuthenticMask` / `GpsAuthenticMask`) rather than per RF band?
 - Is a dedicated (and potentially optional) `GNSS_SEPT_QUALITY` message the right approach for reporting Septentrio-specific quality indicators?
 
 # References 
@@ -519,6 +520,8 @@ The following questions remain open:
     - [Mosaic-G5 Firmware v1.1.0 Reference Guide](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-G5-P3H)
     - [Mosaic-X5 Firmware v4.15.1 Reference Guide](https://www.septentrio.com/en/products/gnss-receivers/gnss-receiver-modules/mosaic-x5)
     - [u-blox X20 HPG 2.00 Interface Description](https://content.u-blox.com/sites/default/files/documents/u-blox-20-HPG-2.00_InterfaceDescription_UBXDOC-304424225-19888.pdf)
+    - [u-blox X20 HPG 2.10 Interface Description](https://content.u-blox.com/sites/default/files/documents/u-blox-X20-HPG-2.10_InterfaceDescription_UBXDOC-304424225-21263.pdf)
+    - [u-blox X20 HPG 2.11 Interface Description](https://content.u-blox.com/sites/default/files/documents/u-blox-X20-HPG-2.11_InterfaceDescription_UBXDOC-304424225-21617.pdf)
     - [u-blox F9 HPG 1.51 Interface Description](https://content.u-blox.com/sites/default/files/documents/u-blox-F9-HPG-1.51_InterfaceDescription_UBXDOC-963802114-13124.pdf)
     - [Novatel OEM7 Commands and Logs Manual](https://docs.novatel.com/OEM7/Content/PDFs/OEM7_Commands_Logs_Manual.pdf)
     - [MAVLink Packet Serialization Guide](https://mavlink.io/en/guide/serialization.html)
