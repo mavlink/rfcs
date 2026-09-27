@@ -1,253 +1,151 @@
   * Start date: 2026-07-21
   * Contributors: Andrew Tridgell <andrew@tridgell.net>
-  * Related issues: replaces [RFC 0017 / PR #18](https://github.com/mavlink/rfcs/pull/18)
+  * Related issues: incorporates explicit bytewise types and requester negotiation from [RFC PR #18](https://github.com/mavlink/rfcs/pull/18)
 
 # Summary
 
-Add an extended parameter value encoding to the existing parameter
-protocol messages. PARAM_VALUE and PARAM_SET gain two MAVLink2
-extension fields: a one byte `extended_type` and a 32 byte
-`extended_data` array. A new `MAV_PARAM_TYPE_EXTENDED` value of the
-existing `param_type` field indicates that the parameter value is
-carried in the extension fields rather than the `param_value` float
-field, which is set to NaN.
-
-This gives the parameter protocol a general, typed container for
-values the float field cannot represent. The first defined extended
-encoding, `MAV_PARAM_EXTENDED_TYPE_INT32`, provides lossless
-transport of 32-bit integer parameter values; future encodings such
-as 64-bit integers and short strings only need a new
-`MAV_PARAM_EXTENDED_TYPE` value, with no further message changes.
-
-A new capability bit `MAV_PROTOCOL_CAPABILITY_PARAM_EXTENDED` lets a
-GCS discover support before using the encoding in PARAM_SET.
+Extend the existing parameter protocol with explicit bytewise integer types and
+GCS opt-in. Signed and unsigned 32-bit integers occupy the existing four-byte
+`param_value` field. Signed and unsigned 64-bit integers use a typed MAVLink2
+extension. This replaces the earlier proposal to put int32 in the extension.
 
 # Motivation
 
-The parameter protocol carries all values in a 32-bit float field. On
-flight stacks that use the C-cast encoding
-(`MAV_PROTOCOL_CAPABILITY_PARAM_ENCODE_C_CAST`, e.g. ArduPilot), a
-32-bit integer parameter whose magnitude exceeds 2^24 cannot be
-represented exactly: the cast to float silently rounds the value. Bit
-mask parameters with high bits set, large baud rates and device IDs
-are all affected. Flight stacks that use the byte-wise encoding
-(`MAV_PROTOCOL_CAPABILITY_PARAM_ENCODE_BYTEWISE`, e.g. PX4) do not
-lose precision for int32, but that encoding cannot be adopted by
-C-cast systems without breaking every deployed GCS, and it makes the
-float field unreadable without out-of-band type knowledge (a problem
-for log analysis, and the subject of the earlier RFC 0017 proposal).
+C-cast parameter transport rounds large int32 values. Legacy bytewise transport
+avoids that rounding, but its type values overlap C-cast types and float handling
+can corrupt integer bit patterns that represent signalling NaNs. Explicit types
+make decoding unambiguous; raw-byte transport preserves every bit.
 
-Byte-wise transport of an int32 inside the float field itself (the
-approach previously proposed for this problem as
-`MAV_PARAM_TYPE_UNION_INT32`) turns out to be fragile: integer values
-in the ranges 0x7F800001..0x7FFFFFFF and 0xFF800001..0xFFFFFFFF have
-float NaN bit patterns, and many language runtimes and float ABIs
-quieten signalling NaNs in transit, corrupting the value. Avoiding
-that required raw payload patching in every implementation.
+Parameter-over-MAVFTP already preserves int32 downloads, but it does not cover
+writes, acknowledgements, individual reads, or change notifications. Extending
+the existing messages covers these operations without a second protocol.
 
-Note that the parameter-over-MAVFTP protocol (bulk download of
-`@PARAM/param.pck`) already carries int32 parameter values without
-error, and ground stations using it already receive exact values for
-the full parameter list. That covers only the download direction:
-PARAM_SET, the PARAM_VALUE acknowledgement it triggers, individual
-PARAM_REQUEST_READ replies and spontaneous parameter change
-broadcasts all still go through the float field, so a GCS cannot
-losslessly write a large int32 back, and any non-FTP consumer (or
-partial log) is still exposed to rounded values. This RFC closes
-those paths.
+# Wire format
 
-Carrying the value in a plain byte array avoids all float semantics,
-is trivially safe in every language, and the MAVLink2 zero truncation
-rule means the extension fields cost no bandwidth when unused.
+Add these entries to `MAV_PARAM_TYPE`:
 
-A major motivation for the typed byte-array container, rather than a
-mechanism specific to int32, is to open the parameter protocol to
-types it has never been able to carry at all. The 32 byte
-`extended_data` array with a one byte `extended_type` discriminator
-allows future encodings such as 64-bit integers (epoch timestamps,
-64-bit device IDs, large bitmasks) and short strings (SSIDs,
-passphrases, names) to be added by defining a new
-`MAV_PARAM_EXTENDED_TYPE` value, without new messages, without
-changing existing field semantics, and with the same
-capability-gated compatibility story as int32.
+| Value | Name | Value location |
+| --- | --- | --- |
+| 11 | `MAV_PARAM_TYPE_EXTENDED` | `extended_data`, interpreted using `extended_type` |
+| 12 | `MAV_PARAM_TYPE_BYTEWISE_INT32` | Four little-endian bytes in `param_value` |
+| 13 | `MAV_PARAM_TYPE_BYTEWISE_UINT32` | Four little-endian bytes in `param_value` |
 
-# Detailed Design
-
-## Message changes
-
-Both PARAM_VALUE and PARAM_SET gain the same two extension fields:
+`PARAM_VALUE` and `PARAM_SET` gain these extension fields, in this order:
 
 ```xml
 <extensions/>
-<field type="uint8_t" name="extended_type" enum="MAV_PARAM_EXTENDED_TYPE">Datatype of extended_data. Set (non-zero) only when param_type is MAV_PARAM_TYPE_EXTENDED, in which case param_value should be set to NaN.</field>
-<field type="uint8_t[32]" name="extended_data">Extended parameter value, encoded according to extended_type.</field>
+<field type="uint8_t" name="extended_type" enum="MAV_PARAM_EXTENDED_TYPE">Datatype of extended_data.</field>
+<field type="uint8_t[32]" name="extended_data">Extended parameter value.</field>
 ```
 
-## Enum changes
+The first byte of the extension area is therefore the type discriminator.
+`MAV_PARAM_EXTENDED_TYPE` defines:
 
-A new entry in `MAV_PARAM_TYPE`:
+| Value | Name | Encoding |
+| --- | --- | --- |
+| 0 | `MAV_PARAM_EXTENDED_TYPE_NONE` | No extended value |
+| 1 | `MAV_PARAM_EXTENDED_TYPE_BYTEWISE_INT64` | Little-endian signed integer in the first eight data bytes |
+| 2 | `MAV_PARAM_EXTENDED_TYPE_BYTEWISE_UINT64` | Little-endian unsigned integer in the first eight data bytes |
 
-```xml
-<entry value="11" name="MAV_PARAM_TYPE_EXTENDED">
-  <description>Value carried in the extended_type and extended_data fields of PARAM_VALUE and PARAM_SET. Only for use with components that advertise MAV_PROTOCOL_CAPABILITY_PARAM_EXTENDED.</description>
-</entry>
-```
+Signed integers use two's complement. For either 32-bit type, `extended_type` and
+all `extended_data` bytes must be zero. For a 64-bit type, `param_type` is
+EXTENDED, `param_value` is NaN and the remaining 24 data bytes are zero.
+Unknown extended types must not be interpreted as a float value.
 
-A new enum describing the payload of `extended_data`:
+The 32-byte container reserves space for future types without further message
+changes. No extended int32 subtype is defined.
 
-```xml
-<enum name="MAV_PARAM_EXTENDED_TYPE">
-  <entry value="0" name="MAV_PARAM_EXTENDED_TYPE_NONE">
-    <description>No extended data. Used when param_type is not MAV_PARAM_TYPE_EXTENDED.</description>
-  </entry>
-  <entry value="1" name="MAV_PARAM_EXTENDED_TYPE_INT32">
-    <description>32-bit signed integer, little-endian in the first 4 bytes of extended_data. Used for values that are not exactly representable as a 32-bit float.</description>
-  </entry>
-</enum>
-```
+# Negotiation
 
-A new capability bit in `MAV_PROTOCOL_CAPABILITY`:
+Append a `uint32_t supported_types` MAVLink2 extension to both
+`PARAM_REQUEST_READ` and `PARAM_REQUEST_LIST`. It is a bitmask of
+`MAV_PARAM_TYPES_SUPPORTED`, independent of the numeric values of the type enums:
 
-```xml
-<entry value="2097152" name="MAV_PROTOCOL_CAPABILITY_PARAM_EXTENDED">
-  <description>Component accepts PARAM_SET and emits PARAM_VALUE with MAV_PARAM_TYPE_EXTENDED and the extended_type/extended_data extension fields, for lossless transport of parameter values that are not exactly representable in the param_value float field, such as large 32-bit integers. Ground stations must not send MAV_PARAM_TYPE_EXTENDED to a component that does not advertise this capability.</description>
-</entry>
-```
+| Bit value | Encoding understood |
+| --- | --- |
+| 1 | BYTEWISE_INT32 |
+| 2 | BYTEWISE_UINT32 |
+| 4 | EXTENDED / BYTEWISE_INT64 |
+| 8 | EXTENDED / BYTEWISE_UINT64 |
 
-## Sender rules
+A zero or missing extension requests the existing encoding. Unknown bits are
+ignored. The component may only emit a new type understood by the receiving
+clients. Support applies to read replies, list streams, set acknowledgements and
+unsolicited updates, not just the response to that particular request.
 
-  * A component may choose to only use `MAV_PARAM_TYPE_EXTENDED` when
-    the parameter value is not exactly representable in the
-    `param_value` float field. With that strategy values that fit keep
-    the existing wire format, so the vast majority of parameter
-    traffic is unchanged, and GCS that do not understand the encoding
-    are only exposed to it for values they could not have received
-    correctly anyway. ArduPilot will do this initially; once client
-    support has been widespread for a sufficient time a component may
-    use the extended encoding for all parameter values, which becomes
-    the natural choice once types like int64 that have no non-extended
-    representation are supported.
-  * When the extended encoding is used, `param_value` is set to NaN.
-    A consumer that does not understand the extension then sees an
-    unmistakably invalid value rather than a plausible-looking float
-    that it might silently accept, display, or worse, write back. An
-    alternative considered was setting `param_value` to the closest
-    float representation of the value for graceful degradation; the
-    final choice depends on how deployed ground stations that predate
-    this RFC behave when receiving each variant.
-  * The extension fields can only be carried in MAVLink2 frames. A
-    sender must not use `MAV_PARAM_TYPE_EXTENDED` on a MAVLink1
-    channel; it falls back to the existing (lossy) encoding there.
-  * A GCS must not send `MAV_PARAM_TYPE_EXTENDED` in PARAM_SET unless
-    the target advertises `MAV_PROTOCOL_CAPABILITY_PARAM_EXTENDED` in
-    AUTOPILOT_VERSION.
+A component advertises `MAV_PROTOCOL_CAPABILITY_PARAM_BYTEWISE` (2097152) when
+it implements explicit bytewise encodings and requester negotiation. This does
+not imply storage support for all integer widths. A GCS checks this capability
+before sending a new PARAM_SET type and advertises its receive mask first,
+including when its parameter dictionary was obtained over FTP.
 
-## Receiver rules
+PARAM_VALUE is broadcast and carries no destination. Implementations must
+account for clients sharing a channel. The ArduPilot reference implementation
+records each channel's first requester, allows that sole requester to replace
+its mask, and intersects masks once another requester appears. After multiple
+requesters have been observed it never enlarges the common mask until the
+channel is reinitialized. A legacy request therefore prevents new encodings
+from being sent on that shared channel. Replies queued before a downgrade are
+also downgraded before transmission. This is conservative if clients leave;
+it cannot detect passive listeners or multiple clients sharing one identity.
+Separate links should be used when clients require different encodings.
 
-  * On receiving `param_type == MAV_PARAM_TYPE_EXTENDED` with
-    `extended_type == MAV_PARAM_EXTENDED_TYPE_INT32`, the value is the
-    little-endian int32 in `extended_data[0..3]`. The `param_value` field is ignored for
-    extended values.
-  * A PARAM_SET with an unknown (or `NONE`) `extended_type` and
-    `param_type == MAV_PARAM_TYPE_EXTENDED` is rejected; components
-    implementing PARAM_ERROR should report
-    `MAV_PARAM_ERROR_TYPE_UNSUPPORTED`. This also covers the case of
-    an extended PARAM_SET arriving via a MAVLink1 frame, where the
-    extension fields are lost and decode as zero.
-  * An extended PARAM_SET whose encoding does not match the storage
-    type of the target parameter (e.g. INT32 onto a float parameter)
-    is rejected; components implementing PARAM_ERROR should report
-    `MAV_PARAM_ERROR_TYPE_MISMATCH`.
-  * Receive support is independent of any user-facing option that
-    disables extended sending: a component that understands the
-    encoding always accepts it in PARAM_SET.
+New types are only selected after MAVLink2 negotiation. MAVLink1 requests imply
+zero support. A component with 64-bit storage must reject a request it cannot
+represent rather than silently cast that value to float; the exact error policy
+for such a component remains to be specified. ArduPilot has no 64-bit parameter
+storage in this implementation.
 
-## Bandwidth
+# Implementation requirements
 
-MAVLink2 truncates trailing zero payload bytes. When the extension
-fields are unused they are zero and the messages are byte-identical to
-today's. An extended int32 PARAM_VALUE grows by 5 bytes
-(`extended_type` plus 4 value bytes).
+The 32-bit float field is a byte container for the explicit bytewise types.
+Never obtain those bytes by converting an integer to a floating-point number,
+or round-trip them through a float variable: signalling-NaN patterns may change.
+Preserve raw payload bytes when decoding and forwarding messages, and place
+raw bytes into outgoing packets before checksum and signature calculation.
+Payload offsets are independent of header extensions such as 32-bit system IDs.
 
-## Future encodings
+ArduPilot sends BYTEWISE_INT32 for all int32 parameters on opted-in MAVLink2
+channels, including small values. Other parameter types retain legacy encoding.
+It accepts BYTEWISE_INT32 into int32 storage and BYTEWISE_UINT32 when the value
+fits signed int32. Type mismatch and overflow return PARAM_ERROR; unsupported
+64-bit and unknown extended types return TYPE_UNSUPPORTED. Rejected writes do
+not change storage. `MAV_OPTIONS` bit 1 disables the capability and bytewise
+output; receive support remains available.
 
-The 32 byte `extended_data` array deliberately leaves room for
-further `MAV_PARAM_EXTENDED_TYPE` values, for example 64-bit
-integers, doubles or short strings, without further message changes.
-The NaN `param_value` fallback applies uniformly to all extended
-encodings, including non-numeric ones such as strings. Defining those
-encodings is out of scope for this RFC; this document only
-establishes the container and the int32 encoding.
+pymavlink provides raw field access before packing, exact decoding, request mask
+helpers, and exact integer parsing and file storage up to UINT64_MAX. Its Python
+generator preserves raw PARAM_VALUE/PARAM_SET bytes when forwarding explicit
+32-bit types. Low-level generated send functions that take a float must not be
+used directly to send bytewise32 values: use the raw-byte wrapper instead.
+MAVProxy negotiates before bytewise sets and retains exact values from messages
+and FTP logs. PX4 is outside the implementation scope of this project.
 
-## Reference implementation
+# Bandwidth and compatibility
 
-  * ArduPilot: sends extended int32 for values that don't fit a
-    float on MAVLink2 channels, accepts extended PARAM_SET, and has a
-    user option (`MAV_OPTIONS` bit 1) to disable extended sending and
-    the capability bit for compatibility with ground stations that
-    mis-handle unknown parameter types.
-  * pymavlink: `decode_param_value()` helper, capability tracking and
-    `param_set_send()` support.
-  * MAVProxy: transparent lossless `param set`/`param show` for int32
-    parameters, gated on the capability bit.
+Message IDs, base layouts and CRC extras are unchanged. MAVLink2 removes zero
+extension tails, so explicit 32-bit values have the same payload length as
+legacy values: 25 bytes for PARAM_VALUE and 23 for PARAM_SET. A 64-bit value
+adds at most nine bytes (one type and eight data bytes), with zero tails removed.
+Request masks add up to four bytes; zero masks add nothing.
+
+Legacy clients receive legacy encoding unless they share an already opted-in
+channel without identifying themselves. Legacy servers ignore the new request
+extensions. Updated clients must continue supporting legacy C-cast and bytewise
+protocols for existing vehicles. Numeric assignments in this proposal are
+provisional until upstream allocation.
 
 # Alternatives
 
-  * **Byte-wise transport in the float field**
-    (`MAV_PARAM_TYPE_UNION_INT32`, the predecessor of this RFC):
-    rejected because integer values with NaN bit patterns are
-    corrupted by signalling-NaN quietening in common float paths, and
-    working around that requires raw payload access in every
-    implementation. It also cannot degrade gracefully: an old GCS sees
-    a garbage float instead of a close approximation.
-  * **RFC 0017 (parameter type with encoding)**: signals the encoding
-    (C-cast vs byte-wise) in new PARAM_VALUE/PARAM_SET type values,
-    which solves log decoding ambiguity and migration signalling but
-    does not make large int32 values lossless on C-cast systems, and
-    changes the meaning of `param_type` for all values rather than
-    only exceptional ones.
-  * **Parameter-over-MAVFTP alone**: already lossless for bulk
-    download and needs no protocol change, but provides no lossless
-    PARAM_SET, no lossless set acknowledgement and no lossless
-    individual reads or change broadcasts, and is not implemented by
-    all consumers.
-  * **PARAM_EXT_* messages**: the extended parameter protocol
-    (PARAM_EXT_REQUEST_READ etc.) transports values as strings and is
-    a separate protocol; it is not implemented by most autopilot
-    firmware or ground stations for regular parameters, and migrating
-    to it is a much larger change than extending the existing
-    messages.
-  * **Adding a double field instead of a byte array**: a double can
-    hold any int32 exactly, but not int64/uint64 should those ever be
-    needed, and a typed byte array is more explicit about the exact
-    wire semantics.
-
-# Unresolved Questions
-
-  * Whether `param_value` should carry NaN (fail loudly in
-    extension-unaware consumers) or the closest float representation
-    of the value (degrade gracefully, at the risk of a stale client
-    silently using or writing back a rounded value). NaN is proposed
-    here; the answer should be settled by testing older releases of
-    the major ground stations against both variants. Code inspection
-    of current releases: QGroundControl drops a PARAM_VALUE with an
-    unknown param_type before ever looking at param_value (single
-    parameter refresh and set-acknowledgement fail after retries;
-    bulk download is unaffected as ArduPilot vehicles use the
-    already-lossless MAVFTP download), so the choice does not matter
-    to it; Mission Planner ignores the unknown type for ArduPilot
-    vehicles and uses the float field directly, so it would display
-    NaN (visible breakage) versus a silently rounded value
-    (indistinguishable from today). The user-selectable option to
-    disable extended sending covers both until they are updated. Note that the
-    closest-float variant would also give extension-aware clients a
-    usable approximation of values whose extended_type postdates
-    them, which NaN cannot.
-  * Whether `MAV_PARAM_EXTENDED_TYPE` values for 64-bit types should
-    be defined now or when first needed.
+* Putting int32 in the extension avoids float API issues but costs up to five
+  extra bytes per value. This proposal instead requires raw-byte access and
+  uses negotiation to keep legacy clients on their existing path.
+* PARAM_EXT_* provides string transport but requires a separate protocol.
+* FTP alone does not provide exact individual writes or acknowledgements.
+* A double extension holds int32 exactly but cannot hold every int64/uint64.
 
 # References
 
-  * Parameter protocol: https://mavlink.io/en/services/parameter.html
-  * Parameter encoding discussion: https://mavlink.io/en/services/parameter.html#parameter-encoding
-  * Previous proposal: https://github.com/mavlink/rfcs/pull/18
+* [Parameter protocol](https://mavlink.io/en/services/parameter.html)
+* [Earlier explicit encoding proposal](https://github.com/mavlink/rfcs/pull/18)
+* [ArduPilot project](https://github.com/orgs/ArduPilot/projects/34)
