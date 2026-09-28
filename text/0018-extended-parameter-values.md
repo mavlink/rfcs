@@ -19,9 +19,10 @@ float handling can corrupt integer bit patterns that represent signalling
 NaNs. Explicit types make decoding unambiguous; raw-byte transport preserves
 every bit.
 
-Parameter-over-MAVFTP already preserves int32 downloads, but it does not cover
-writes, acknowledgements, individual reads, or change notifications. Extending
-the existing messages covers these operations without a second protocol.
+Parameter-over-MAVFTP already supports exact parameter reads and writes,
+including individual reads. This proposal complements that transport by making
+value encoding explicit in the existing PARAM_* messages, including set
+acknowledgements, change notifications and asynchronous write status.
 
 # Wire format
 
@@ -244,7 +245,8 @@ are provisional until upstream allocation.
 * PARAM_EXT_* provides a 128-byte binary container and explicit write results,
   but requires a separate message family and does not preserve the compact
   four-byte path for common values.
-* FTP alone does not provide exact individual writes or acknowledgements.
+* MAVFTP provides another transport for exact reads and writes, including
+  individual reads. This proposal addresses the encoding of PARAM_* messages.
 * A double extension holds int32 exactly but cannot hold every int64/uint64.
 
 # References
